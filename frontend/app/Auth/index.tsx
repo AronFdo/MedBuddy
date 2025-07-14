@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { supabase } from '../../lib/supabase';
+import { useRouter } from 'expo-router';
 
 const COLORS = {
   primary: '#307351',
@@ -24,11 +25,25 @@ const COLORS = {
 };
 
 function SignInScreen() {
+  const router = useRouter();
   const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [name, setName] = useState('');
+
+  useEffect(() => {
+    const checkSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        router.replace('/(tabs)/HomeDashboard');
+      }
+    };
+    checkSession();
+  }, []);
+
+  console.log('SignInScreen is rendering');
 
   const handleAuth = async () => {
     if (!email || !password) {
@@ -46,32 +61,31 @@ function SignInScreen() {
       return;
     }
 
+    if (isSignUp && !name) {
+      Alert.alert('Error', 'Please enter your name');
+      return;
+    }
+
     setLoading(true);
 
     try {
       if (isSignUp) {
-        const { error } = await supabase.auth.signUp({
-          email,
-          password,
-        });
-
+        const { data, error } = await supabase.auth.signUp({ email, password });
         if (error) {
           Alert.alert('Error', error.message);
+        } else if (!data.session) {
+          Alert.alert('Error', 'No session found. Please try signing in.');
         } else {
-          Alert.alert(
-            'Success',
-            'Account created successfully! Please check your email for verification.',
-            [{ text: 'OK' }]
-          );
+          router.push({ pathname: '/Auth/profile-type', params: { name } });
         }
       } else {
-        const { error } = await supabase.auth.signInWithPassword({
-          email,
-          password,
-        });
-
+        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) {
           Alert.alert('Error', error.message);
+        } else if (!data.session) {
+          Alert.alert('Error', 'No session found. Please try again.');
+        } else {
+          router.replace('/(tabs)/HomeDashboard');
         }
       }
     } catch (error) {
@@ -133,6 +147,21 @@ function SignInScreen() {
                 ? 'Sign up to start your health journey'
                 : 'Sign in to continue your health journey'}
             </Text>
+
+            {isSignUp && (
+              <View style={styles.inputContainer}>
+                <Text style={styles.label}>Name</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Enter your name"
+                  placeholderTextColor={COLORS.gray}
+                  value={name}
+                  onChangeText={setName}
+                  autoCapitalize="words"
+                  autoCorrect={false}
+                />
+              </View>
+            )}
 
             <View style={styles.inputContainer}>
               <Text style={styles.label}>Email</Text>
@@ -214,6 +243,7 @@ function SignInScreen() {
                 setEmail('');
                 setPassword('');
                 setConfirmPassword('');
+                setName('');
               }}
             >
               <Text style={styles.toggleButtonText}>
