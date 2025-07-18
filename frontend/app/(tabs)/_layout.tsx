@@ -21,20 +21,7 @@ export default function TabLayout() {
           tabBarIcon: ({ color, size }) => <Ionicons name="home" size={size} color={color} />,
         }}
       />
-      <Tabs.Screen
-        name="Profile"
-        options={{
-          title: 'Profile',
-          tabBarIcon: ({ color, size }) => <Feather name="user" size={size} color={color} />,
-        }}
-      />
-      <Tabs.Screen
-        name="Notifications"
-        options={{
-          title: 'Notifications',
-          tabBarIcon: ({ color, size }) => <Ionicons name="notifications-outline" size={size} color={color} />,
-        }}
-      />
+      
       <Tabs.Screen
         name="Medications"
         options={{
@@ -43,10 +30,17 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="Settings"
+        name="Appointments"
         options={{
-          title: 'Settings',
-          tabBarIcon: ({ color, size }) => <Ionicons name="settings-outline" size={size} color={color} />,
+          title: 'Appointments',
+          tabBarIcon: ({ color, size }) => <Ionicons name="calendar-outline" size={size} color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="Profile"
+        options={{
+          title: 'Profile',
+          tabBarIcon: ({ color, size }) => <Feather name="user" size={size} color={color} />,
         }}
       />
     </Tabs>
