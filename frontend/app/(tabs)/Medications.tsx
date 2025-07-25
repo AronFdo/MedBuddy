@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, FlatList, ActivityIndicator, Modal, Platform, TextInput, Image } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, SectionList, ActivityIndicator, Modal, Platform, TextInput, Image } from 'react-native';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { supabase } from '../../lib/supabase';
@@ -28,7 +28,7 @@ function CustomHeader({ title }: { title: string }) {
   );
 }
 
-function AddMedicationModalForm({ onSuccess }: { onSuccess: () => void }) {
+function AddMedicationModalForm({ onSuccess, profileId }: { onSuccess: () => void, profileId: string | null }) {
   const [image, setImage] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -57,10 +57,9 @@ function AddMedicationModalForm({ onSuccess }: { onSuccess: () => void }) {
     setUploading(true);
     setError(null);
     try {
-      // Get user_id from Supabase auth
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        setError('User not authenticated.');
+      if (!user || !profileId) {
+        setError('User or profile not found.');
         setUploading(false);
         return;
       }
@@ -78,26 +77,19 @@ function AddMedicationModalForm({ onSuccess }: { onSuccess: () => void }) {
         reader.readAsDataURL(blob);
         imageDataUrl = await base64Promise;
       }
-      // Debug: Log payload
-      console.log('Sending to backend:', { image: imageDataUrl.slice(0, 100) + '...', user_id: user.id });
-      // Send to backend
+      // Send to backend with profile_id
       const res = await fetch('http://172.20.10.3:3001/api/ocr/medication', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ image: imageDataUrl, user_id: user.id }),
+        body: JSON.stringify({ image: imageDataUrl, user_id: user.id, profile_id: profileId }),
       });
-      // Debug: Log response status
-      console.log('Backend response status:', res.status);
       const result = await res.json();
-      // Debug: Log response body
-      console.log('Backend response body:', result);
       if (!res.ok) {
         setError(result.error || 'Failed to process image.');
       } else {
         onSuccess();
       }
     } catch (e) {
-      console.log('Upload error:', e);
       setError('Failed to upload image.');
     } finally {
       setUploading(false);
@@ -136,7 +128,7 @@ function AddMedicationModalForm({ onSuccess }: { onSuccess: () => void }) {
   );
 }
 
-function EditMedicationModalForm({ medication, onSuccess, onCancel }: { medication: any, onSuccess: () => void, onCancel: () => void }) {
+function EditMedicationModalForm({ medication, onSuccess, onCancel, profileId }: { medication: any, onSuccess: () => void, onCancel: () => void, profileId: string | null }) {
   const [name, setName] = useState(medication.name || '');
   const [dosage, setDosage] = useState(medication.dosage || '');
   const [frequency, setFrequency] = useState(medication.frequency || '');
@@ -394,6 +386,10 @@ export default function Medications() {
   const [showEditModal, setShowEditModal] = useState(false);
   const [selectedMedication, setSelectedMedication] = useState<any | null>(null);
   const [logs, setLogs] = useState<any[]>([]); // Store today's logs
+  const [activeTab, setActiveTab] = useState('ongoing'); // New state for tabs
+  const [profile, setProfile] = useState<any>(null);
+  const [profiles, setProfiles] = useState<any[]>([]);
+  const [profileLoading, setProfileLoading] = useState(true);
 
   // Helper to get today's date in YYYY-MM-DD
   function getTodayDateStr() {
@@ -401,44 +397,77 @@ export default function Medications() {
     return d.toISOString().slice(0, 10);
   }
 
-  // Fetch medications and today's logs
+  // Fetch profiles and set default profile on mount
   useEffect(() => {
-    const fetchMedicationsAndLogs = async () => {
-      setLoading(true);
-      setError(null);
+    const fetchProfiles = async () => {
+      setProfileLoading(true);
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        setError('User not authenticated');
-        setLoading(false);
-        return;
+      if (user) {
+        const { data: allProfiles } = await supabase.from('profiles').select('*').eq('user_id', user.id);
+        setProfiles(allProfiles || []);
+        setProfile(allProfiles && allProfiles.length > 0 ? allProfiles[0] : null);
       }
-      // Fetch medications
+      setProfileLoading(false);
+    };
+    fetchProfiles();
+  }, []);
+
+  // Refetch medications/logs when profile changes
+  useEffect(() => {
+    if (!profile || !profile.id) return;
+    setLoading(true);
+    setError(null);
+    const fetchMedicationsAndLogs = async () => {
+      // Fetch medications for this profile, join prescription
       const { data: meds, error: medsError } = await supabase
         .from('medications')
-        .select('*')
-        .eq('user_id', user.id);
+        .select('*, prescriptions:prescription_id (id, doctor_name, notes)')
+        .eq('profile_id', profile.id);
       if (medsError) {
         setError('Failed to fetch medications');
         setMedications([]);
       } else {
         setMedications(meds || []);
       }
-      // Fetch today's logs
+      // Fetch today's logs for this profile
       const { data: logData, error: logError } = await supabase
         .from('medication_logs')
         .select('*')
-        .eq('user_id', user.id)
+        .eq('profile_id', profile.id)
         .eq('log_date', getTodayDateStr());
       if (!logError) setLogs(logData || []);
       setLoading(false);
     };
     fetchMedicationsAndLogs();
-  }, []);
+  }, [profile]);
 
-  // Helper to get today's status for a medication
-  function getTodayStatus(medication_id: string) {
-    const log = logs.find(l => l.medication_id === medication_id);
-    return log && log.status === 'taken' ? 'Taken' : 'Pending';
+  // If no profile, prompt user
+  if (profileLoading) {
+    return <View style={styles.centered}><ActivityIndicator size="large" color={COLORS.primary} /></View>;
+  }
+  if (!profile) {
+    return (
+      <View style={styles.centered}>
+        <Text style={styles.errorText}>No profile selected. Please create or select a profile in the Profile tab.</Text>
+      </View>
+    );
+  }
+
+  // Group medications by prescription
+  function groupByPrescription(medications: any[]) {
+    const groups: Record<string, { prescription: any, medications: any[] }> = {};
+    medications.forEach(med => {
+      const presc = med.prescriptions;
+      const prescId = presc?.id || 'no-prescription';
+      if (!groups[prescId]) {
+        groups[prescId] = {
+          prescription: presc,
+          medications: [],
+        };
+      }
+      groups[prescId].medications.push(med);
+    });
+    return Object.values(groups);
   }
 
   // Handler for Mark as Taken
@@ -472,8 +501,8 @@ export default function Medications() {
         // Refresh medications list
         const { data: meds, error: medsError } = await supabase
           .from('medications')
-          .select('*')
-          .eq('user_id', user.id);
+          .select('*, prescriptions:prescription_id (id, doctor_name, notes)')
+          .eq('profile_id', profile.id);
         if (!medsError) setMedications(meds || []);
       }
     }
@@ -492,9 +521,39 @@ export default function Medications() {
     alert(`Delete: ${medication.name}`);
   };
 
+  // Filter medications for each tab
+  const ongoingMedications = medications.filter(m => m.days_remaining === null || m.days_remaining > 0);
+  const pastMedications = medications.filter(m => m.days_remaining === 0);
+  const displayedMedications = activeTab === 'ongoing' ? ongoingMedications : pastMedications;
+
+  // Prepare sections for SectionList
+  const sections = groupByPrescription(displayedMedications).map(group => ({
+    title: group.prescription?.doctor_name
+      ? `${group.prescription.doctor_name}`
+      : 'Uncategorized',
+    notes: group.prescription?.notes,
+    data: group.medications,
+  }));
+
   return (
     <View style={styles.container}>
       <CustomHeader title="Medications" />
+
+      <View style={styles.tabContainer}>
+        <TouchableOpacity
+          style={[styles.tab, activeTab === 'ongoing' && styles.activeTab]}
+          onPress={() => setActiveTab('ongoing')}
+        >
+          <Text style={[styles.tabText, activeTab === 'ongoing' && styles.activeTabText]}>Ongoing</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.tab, activeTab === 'past' && styles.activeTab]}
+          onPress={() => setActiveTab('past')}
+        >
+          <Text style={[styles.tabText, activeTab === 'past' && styles.activeTabText]}>Past</Text>
+        </TouchableOpacity>
+      </View>
+
       {loading ? (
         <View style={styles.centered}>
           <ActivityIndicator size="large" color={COLORS.primary} />
@@ -503,23 +562,35 @@ export default function Medications() {
         <View style={styles.centered}>
           <Text style={styles.errorText}>{error}</Text>
         </View>
-      ) : medications.length === 0 ? (
+      ) : displayedMedications.length === 0 ? (
         <View style={styles.centered}>
           <View style={styles.watermarkContainer}>
-            <Ionicons name="alert-circle-outline" size={120} color={COLORS.lightGray} style={styles.watermarkIcon} />
-            <Text style={styles.emptyText}>No medication. Add medication to view them.</Text>
+            <Ionicons name="medkit-outline" size={120} color={COLORS.lightGray} style={styles.watermarkIcon} />
+            <Text style={styles.emptyText}>
+              {activeTab === 'ongoing'
+                ? 'No ongoing medications. Add some!'
+                : 'No past medications found.'}
+            </Text>
           </View>
         </View>
       ) : (
-        <FlatList
-          data={medications}
+        <SectionList
+          sections={sections}
           keyExtractor={(item) => item.medication_id?.toString() || Math.random().toString()}
+          renderSectionHeader={({ section }) => (
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionHeaderTitle}>{section.title}</Text>
+              {section.notes && (
+                <Text style={styles.sectionHeaderNotes}>{section.notes}</Text>
+              )}
+            </View>
+          )}
           renderItem={({ item }) => {
             const progress = getDoseProgress(item.reminder_times, logs, item.medication_id);
             return (
               <View style={styles.medicationCard} accessible={true} accessibilityLabel={`Medication card for ${item.name}`}>
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-              <Text style={styles.medicationName}>{item.name || 'Unnamed Medication'}</Text>
+                  <Text style={styles.medicationName}>{item.name || 'Unnamed Medication'}</Text>
                   <View style={{ width: 120 }}>
                     {progress.taken === 0 ? (
                       <View style={[styles.statusPill, styles.statusPending]}>
@@ -540,19 +611,21 @@ export default function Medications() {
                   </View>
                 </View>
                 <View style={{ flexDirection: 'row', marginTop: 4, marginBottom: 2 }}>
-              {item.dosage && (
+                  {item.dosage && (
                     <Text style={styles.medicationDetail}>Dosage: <Text style={{ fontWeight: 'bold' }}>{item.dosage}</Text></Text>
-              )}
-              {item.frequency && (
+                  )}
+                  {item.frequency && (
                     <Text style={[styles.medicationDetail, { marginLeft: 16 }]}>Frequency: <Text style={{ fontWeight: 'bold' }}>{item.frequency}</Text></Text>
-              )}
-            </View>
+                  )}
+                </View>
                 <Text style={styles.medicationDetail}>
-  {item.days_remaining > 0 || item.days_remaining === null
-    ? `${item.days_remaining ?? '?'} day${item.days_remaining === 1 ? '' : 's'} left`
-    : 'Course complete'}
-</Text>
-                <Text style={[styles.medicationDetail, { marginBottom: 4 }]}>Next dose: <Text style={{ fontWeight: 'bold' }}>{getNextDoseTime(item.reminder_times, logs, item.medication_id, item.days_remaining)}</Text></Text>
+                  {item.days_remaining > 0 || item.days_remaining === null
+                    ? `${item.days_remaining ?? '?'} day${item.days_remaining === 1 ? '' : 's'} left`
+                    : 'Course complete'}
+                </Text>
+                {(item.days_remaining === null || item.days_remaining > 0) && (
+                  <Text style={[styles.medicationDetail, { marginBottom: 4 }]}>Next dose: <Text style={{ fontWeight: 'bold' }}>{getNextDoseTime(item.reminder_times, logs, item.medication_id, item.days_remaining)}</Text></Text>
+                )}
                 <View style={styles.cardActionsRow}>
                   <TouchableOpacity
                     onPress={() => handleMarkAsTaken(item, progress.nextDose)}
@@ -603,22 +676,22 @@ export default function Medications() {
       >
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
-            <AddMedicationModalForm onSuccess={() => {
+            <AddMedicationModalForm profileId={profile.id} onSuccess={() => {
               setShowAddModal(false);
               // Refresh medications list
               (async () => {
                 setLoading(true);
                 setError(null);
                 const { data: { user } } = await supabase.auth.getUser();
-                if (!user) {
-                  setError('User not authenticated');
+                if (!user || !profile.id) {
+                  setError('User or profile not found');
                   setLoading(false);
                   return;
                 }
                 const { data, error } = await supabase
                   .from('medications')
-                  .select('*')
-                  .eq('user_id', user.id);
+                  .select('*, prescriptions:prescription_id (id, doctor_name, notes)')
+                  .eq('profile_id', profile.id);
                 if (error) {
                   setError('Failed to fetch medications');
                   setMedications([]);
@@ -659,8 +732,8 @@ export default function Medications() {
                   }
                   const { data: meds, error: medsError } = await supabase
                     .from('medications')
-                    .select('*')
-                    .eq('user_id', user.id);
+                    .select('*, prescriptions:prescription_id (id, doctor_name, notes)')
+                    .eq('profile_id', profile.id);
                   if (medsError) {
                     setError('Failed to fetch medications');
                     setMedications([]);
@@ -673,6 +746,7 @@ export default function Medications() {
                   setShowEditModal(false);
                   setSelectedMedication(null);
                 }}
+                profileId={profile.id}
               />
             )}
             <TouchableOpacity style={styles.closeButton} onPress={() => setShowEditModal(false)}>
@@ -712,6 +786,32 @@ const styles = StyleSheet.create({
     color: COLORS.white,
     fontWeight: 'bold',
     letterSpacing: 1,
+  },
+  tabContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    marginHorizontal: 16,
+    marginBottom: 16,
+    backgroundColor: COLORS.lightGray,
+    borderRadius: 12,
+    padding: 4,
+  },
+  tab: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: 10,
+    alignItems: 'center',
+  },
+  activeTab: {
+    backgroundColor: COLORS.primary,
+  },
+  tabText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: COLORS.gray,
+  },
+  activeTabText: {
+    color: COLORS.white,
   },
   topBar: {
     flexDirection: 'row',
@@ -916,5 +1016,22 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     fontSize: 13,
     zIndex: 1,
+  },
+  sectionHeader: {
+    backgroundColor: '#e0f7fa',
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 4,
+    marginTop: 12,
+  },
+  sectionHeaderTitle: {
+    fontWeight: 'bold',
+    fontSize: 17,
+    color: COLORS.primary,
+  },
+  sectionHeaderNotes: {
+    color: '#555',
+    fontStyle: 'italic',
+    marginTop: 2,
   },
 }); 

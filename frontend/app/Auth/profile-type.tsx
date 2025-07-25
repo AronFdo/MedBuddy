@@ -25,6 +25,8 @@ function ProfileTypeScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
   const name = params.name as string | undefined;
+  const age = params.age as string | undefined;
+  const gender = params.gender as string | undefined;
 
   const handleSelect = async (profileType: string) => {
     setLoading(true);
@@ -39,6 +41,8 @@ function ProfileTypeScreen() {
     const { error } = await supabase.from('profiles').upsert({
       user_id: user.id,
       ...(name ? { name } : {}),
+      ...(age ? { age: Number(age) } : {}),
+      ...(gender ? { gender } : {}),
       profile_type: profileType,
       updated_at: new Date().toISOString(),
     });

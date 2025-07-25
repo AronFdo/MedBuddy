@@ -50,7 +50,7 @@ async function extractMedicationFromImage(base64Image) {
 
 // POST /api/ocr/medication
 app.post('/api/ocr/medication', async (req, res) => {
-  const { image, user_id } = req.body;
+  const { image, user_id, profile_id } = req.body;
   console.log('Received /api/ocr/medication request');
   console.log('user_id:', user_id);
   if (image) {
@@ -84,12 +84,25 @@ app.post('/api/ocr/medication', async (req, res) => {
       console.log('Supabase prescription insert error:', prescriptionError);
       return res.status(500).json({ error: 'Failed to store prescription in database.' });
     }
-    // Set explanation to blank if not provided
-    const explanation = medInfo.explanation || '';
-    // Store medication in medications table, include days_remaining
+    // Set explanation fields if present
+    const explanation_en = medInfo.explanation_en || '';
+    const explanation_si = medInfo.explanation_si || '';
+    const explanation_ta = medInfo.explanation_ta || '';
+    // Store medication in medications table, include all new fields
     const { data: medicationData, error: medicationError } = await supabase
       .from('medications')
-      .insert([{ user_id, prescription_id, name, dosage, frequency, days_remaining: days || null }])
+      .insert([{
+        profile_id,
+        prescription_id,
+        name,
+        dosage,
+        frequency,
+        explanation_en,
+        explanation_si,
+        explanation_ta,
+        reminder_times: medInfo.reminder_times || null,
+        days_remaining: days || null
+      }])
       .select();
     if (medicationError) {
       console.log('Supabase medication insert error:', medicationError);

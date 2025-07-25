@@ -32,6 +32,8 @@ function SignInScreen() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [name, setName] = useState('');
+  const [age, setAge] = useState('');
+  const [gender, setGender] = useState('');
 
   useEffect(() => {
     const checkSession = async () => {
@@ -66,6 +68,15 @@ function SignInScreen() {
       return;
     }
 
+    if (isSignUp && !age) {
+      Alert.alert('Error', 'Please enter your age');
+      return;
+    }
+    if (isSignUp && !gender) {
+      Alert.alert('Error', 'Please select your gender');
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -76,7 +87,7 @@ function SignInScreen() {
         } else if (!data.session) {
           Alert.alert('Error', 'No session found. Please try signing in.');
         } else {
-          router.push({ pathname: '/Auth/profile-type', params: { name } });
+          router.push({ pathname: '/Auth/profile-type', params: { name, age, gender } });
         }
       } else {
         const { data, error } = await supabase.auth.signInWithPassword({ email, password });
@@ -163,6 +174,44 @@ function SignInScreen() {
               </View>
             )}
 
+            {isSignUp && (
+              <View style={styles.inputContainer}>
+                <Text style={styles.label}>Age</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Enter your age"
+                  placeholderTextColor={COLORS.gray}
+                  value={age}
+                  onChangeText={setAge}
+                  keyboardType="numeric"
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                />
+              </View>
+            )}
+            {isSignUp && (
+              <View style={styles.inputContainer}>
+                <Text style={styles.label}>Gender</Text>
+                <View style={{ flexDirection: 'row', gap: 12 }}>
+                  {['Male', 'Female', 'Other'].map(option => (
+                    <TouchableOpacity
+                      key={option}
+                      style={{
+                        backgroundColor: gender === option ? COLORS.primary : COLORS.lightGray,
+                        borderRadius: 8,
+                        paddingVertical: 8,
+                        paddingHorizontal: 16,
+                        marginRight: 8,
+                      }}
+                      onPress={() => setGender(option)}
+                    >
+                      <Text style={{ color: gender === option ? COLORS.white : COLORS.primary }}>{option}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+            )}
+
             <View style={styles.inputContainer}>
               <Text style={styles.label}>Email</Text>
               <TextInput
@@ -244,6 +293,8 @@ function SignInScreen() {
                 setPassword('');
                 setConfirmPassword('');
                 setName('');
+                setAge('');
+                setGender('');
               }}
             >
               <Text style={styles.toggleButtonText}>

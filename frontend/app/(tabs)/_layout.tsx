@@ -1,46 +1,62 @@
 import { Tabs } from 'expo-router';
-import { Ionicons, Feather } from '@expo/vector-icons';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import React from 'react';
+import { Ionicons } from '@expo/vector-icons'; // Import Ionicons directly
 
-
+import { Colors } from '@/constants/Colors';
+import { useColorScheme } from '@/hooks/useColorScheme';
 
 export default function TabLayout() {
+  const colorScheme = useColorScheme();
+
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: '#2a4365',
-        tabBarInactiveTintColor: '#64748b',
-        tabBarStyle: { backgroundColor: '#fff', borderTopLeftRadius: 20, borderTopRightRadius: 20, height: 70 },
+        tabBarActiveTintColor: '#307351', // Force active color to be green
         headerShown: false,
-      }}
-    >
+      }}>
       <Tabs.Screen
         name="HomeDashboard"
         options={{
           title: 'Home',
-          tabBarIcon: ({ color, size }) => <Ionicons name="home" size={size} color={color} />,
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons name={focused ? 'home' : 'home-outline'} color={color} size={28} />
+          ),
         }}
       />
-      
       <Tabs.Screen
         name="Medications"
         options={{
           title: 'Medications',
-          tabBarIcon: ({ color, size }) => <MaterialCommunityIcons name="pill" size={size} color={color} />, // pill icon
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons name={focused ? 'medkit' : 'medkit-outline'} color={color} size={28} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="HealthRecord"
+        options={{
+          title: 'Health',
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons name={focused ? 'document-text' : 'document-text-outline'} color={color} size={28} />
+          ),
         }}
       />
       <Tabs.Screen
         name="Appointments"
         options={{
           title: 'Appointments',
-          tabBarIcon: ({ color, size }) => <Ionicons name="calendar-outline" size={size} color={color} />,
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons name={focused ? 'calendar' : 'calendar-outline'} color={color} size={28} />
+          ),
         }}
       />
       <Tabs.Screen
         name="Profile"
         options={{
           title: 'Profile',
-          tabBarIcon: ({ color, size }) => <Feather name="user" size={size} color={color} />,
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons name={focused ? 'person' : 'person-outline'} color={color} size={28} />
+          ),
         }}
       />
     </Tabs>
