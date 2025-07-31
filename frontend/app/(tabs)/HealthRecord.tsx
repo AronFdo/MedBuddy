@@ -211,7 +211,7 @@ export default function HealthRecordScreen() {
     } else {
       setModalVisible(false);
       setSelectedRecord(null);
-      // No need to refetch health records here, it will be done by the useEffect hook
+      // Refetch health records when profile changes
     }
   };
 
@@ -414,12 +414,11 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: COLORS.lightGray,
   },
   errorText: {
-    fontSize: 18,
     color: COLORS.error,
+    fontSize: 16,
     textAlign: 'center',
-    padding: 20,
+    marginTop: 12,
   },
 }); 

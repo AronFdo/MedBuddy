@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, FlatList, Modal, TextInput, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, FlatList, Modal, TextInput } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../../lib/supabase';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import { useProfile } from '../../lib/ProfileContext';
 
 const COLORS = {
   primary: '#307351',
@@ -17,14 +18,13 @@ function CustomHeader({ title }: { title: string }) {
   return (
     <View style={styles.headerContainer}>
       <Text style={styles.headerTitle}>{title}</Text>
-      <View style={{ width: 32 }} />
     </View>
   );
 }
 
 const TABS = ['Appointments', 'Conversations'];
 
-function AddAppointmentModalForm({ onSuccess, onCancel }: { onSuccess: () => void, onCancel: () => void }) {
+function AddAppointmentModalForm({ onSuccess, onCancel, profileId }: { onSuccess: () => void, onCancel: () => void, profileId: string | null }) {
   const [doctorName, setDoctorName] = useState('');
   const [visitReason, setVisitReason] = useState('');
   const [date, setDate] = useState<Date | null>(new Date());
@@ -37,14 +37,13 @@ function AddAppointmentModalForm({ onSuccess, onCancel }: { onSuccess: () => voi
     setSaving(true);
     setError(null);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        setError('User not authenticated.');
+      if (!profileId) {
+        setError('No profile selected. Please create or select a profile in the Profile tab.');
         setSaving(false);
         return;
       }
       const { error } = await supabase.from('appointments').insert({
-        user_id: user.id,
+        profile_id: profileId,
         doctor_name: doctorName,
         visit_reason: visitReason,
         date: date ? date.toISOString().slice(0, 10) : null,
@@ -263,72 +262,67 @@ const modalStyles = StyleSheet.create({
 });
 
 export default function Appointments() {
+  const { profile, loading: profileLoading } = useProfile();
   const [activeTab, setActiveTab] = useState('Appointments');
   const [showAddModal, setShowAddModal] = useState(false);
-  const [profile, setProfile] = useState<any>(null);
-  const [profiles, setProfiles] = useState<any[]>([]);
-  const [profileLoading, setProfileLoading] = useState(true);
   const [appointments, setAppointments] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [editModal, setEditModal] = useState<{ open: boolean, appointment: any | null }>({ open: false, appointment: null });
   const [recordModal, setRecordModal] = useState<{ open: boolean, appointment: any | null }>({ open: false, appointment: null });
 
-  // Fetch profiles and set default profile on mount
-  useEffect(() => {
-    const fetchProfiles = async () => {
-      setProfileLoading(true);
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        const { data: allProfiles } = await supabase.from('profiles').select('*').eq('user_id', user.id);
-        setProfiles(allProfiles || []);
-        setProfile(allProfiles && allProfiles.length > 0 ? allProfiles[0] : null);
-      }
-      setProfileLoading(false);
-    };
-    fetchProfiles();
-  }, []);
+  // Fetch appointments from DB
+  const fetchAppointments = async () => {
+    if (!profile) return;
+    
+    const { data, error } = await supabase
+      .from('appointments')
+      .select('*')
+      .eq('profile_id', profile.id);
+    if (!error && data) {
+      setAppointments(data);
+    } else {
+      setAppointments([]);
+    }
+  };
 
-  // Refetch appointments when profile changes
+
+
   useEffect(() => {
-    if (!profile || !profile.id) return;
-    setLoading(true);
-    setError(null);
-    const fetchAppointments = async () => {
-      const { data: appts, error: apptError } = await supabase
-        .from('appointments')
-        .select('*')
-        .eq('profile_id', profile.id);
-      if (apptError) {
-        setError('Failed to fetch appointments');
-        setAppointments([]);
-      } else {
-        setAppointments(appts || []);
-      }
-      setLoading(false);
-    };
-    fetchAppointments();
+    if (profile) {
+      fetchAppointments();
+    }
   }, [profile]);
 
+  const handleAddSuccess = () => {
+    setShowAddModal(false);
+    fetchAppointments();
+  };
+  const handleEditSuccess = () => {
+    setEditModal({ open: false, appointment: null });
+    fetchAppointments();
+  };
+
+  // If no profile, show message
   if (profileLoading) {
-    return <View style={styles.centered}><ActivityIndicator size="large" color={COLORS.primary} /></View>;
-  }
-  if (!profile) {
     return (
-      <View style={styles.centered}>
-        <Text style={styles.errorText}>No profile selected. Please create or select a profile in the Profile tab.</Text>
+      <View style={{ flex: 1, backgroundColor: COLORS.white }}>
+        <CustomHeader title="Appointments" />
+        <View style={styles.centered}>
+          <Text style={styles.grayText}>Loading...</Text>
+        </View>
       </View>
     );
   }
 
-  const handleAddSuccess = () => {
-    setShowAddModal(false);
-    // No need to refetch appointments here, useEffect will handle it
-  };
-  const handleEditSuccess = () => {
-    setEditModal({ open: false, appointment: null });
-    // No need to refetch appointments here, useEffect will handle it
-  };
+  if (!profile) {
+    return (
+      <View style={{ flex: 1, backgroundColor: COLORS.white }}>
+        <CustomHeader title="Appointments" />
+        <View style={styles.centered}>
+          <Text style={styles.grayText}>No profile selected. Please create or select a profile in the Profile tab.</Text>
+        </View>
+      </View>
+    );
+  }
 
   return (
     <View style={{ flex: 1, backgroundColor: COLORS.white }}>
@@ -378,7 +372,7 @@ export default function Appointments() {
                   style={{ backgroundColor: COLORS.error, borderRadius: 8, padding: 8, justifyContent: 'center', alignItems: 'center' }}
                   onPress={async () => {
                     await supabase.from('appointments').delete().eq('appointment_id', item.appointment_id);
-                    // No need to refetch appointments here, useEffect will handle it
+                    fetchAppointments();
                   }}
                 >
                   <Ionicons name="trash-outline" size={20} color={COLORS.white} />
@@ -393,9 +387,21 @@ export default function Appointments() {
       {/* Add Appointment Button */}
       {activeTab === 'Appointments' && (
         <View style={styles.bottomBar}>
-          <TouchableOpacity style={[styles.actionButtonVertical, { backgroundColor: COLORS.primary }]} onPress={() => setShowAddModal(true)}>
+          <TouchableOpacity 
+            style={[styles.actionButtonVertical, { backgroundColor: profile ? COLORS.primary : COLORS.gray }]} 
+            onPress={() => {
+              if (!profile) {
+                alert('Please create or select a profile in the Profile tab first.');
+                return;
+              }
+              setShowAddModal(true);
+            }}
+            disabled={!profile}
+          >
             <Ionicons name="add-circle-outline" size={24} color={COLORS.white} />
-            <Text style={[styles.actionText, { color: COLORS.white }]}>Add Appointment</Text>
+            <Text style={[styles.actionText, { color: COLORS.white }]}>
+              {profile ? 'Add Appointment' : 'No Profile Selected'}
+            </Text>
           </TouchableOpacity>
         </View>
       )}
@@ -408,7 +414,7 @@ export default function Appointments() {
       >
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
-            <AddAppointmentModalForm onSuccess={handleAddSuccess} onCancel={() => setShowAddModal(false)} />
+            <AddAppointmentModalForm onSuccess={handleAddSuccess} onCancel={() => setShowAddModal(false)} profileId={profile?.id} />
             <TouchableOpacity style={styles.closeButton} onPress={() => setShowAddModal(false)}>
               <Ionicons name="close" size={28} color={COLORS.primary} />
             </TouchableOpacity>
@@ -453,6 +459,7 @@ export default function Appointments() {
           </View>
         </View>
       </Modal>
+
     </View>
   );
 }
@@ -477,6 +484,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     letterSpacing: 1,
   },
+
   tabSwitcher: {
     flexDirection: 'row',
     justifyContent: 'center',
@@ -540,12 +548,6 @@ const styles = StyleSheet.create({
   grayText: {
     color: COLORS.gray,
     fontSize: 16,
-  },
-  errorText: {
-    color: COLORS.error,
-    fontSize: 18,
-    textAlign: 'center',
-    paddingHorizontal: 20,
   },
   bottomBar: {
     flexDirection: 'column',

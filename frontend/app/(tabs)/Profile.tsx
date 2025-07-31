@@ -4,6 +4,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../../lib/supabase';
 import { useRouter } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
+import * as FileSystem from 'expo-file-system';
+
+import { useProfile } from '../../lib/ProfileContext';
 
 const COLORS = {
   primary: '#307351',
@@ -29,10 +32,24 @@ function CustomHeader({ title }: { title: string }) {
 
 function ProfileHeader({ profile }: { profile: any }) {
   if (!profile) return null;
+  console.log('ProfileHeader rendering with profile:', { 
+    name: profile.name, 
+    profile_pic_url: profile.profile_pic_url 
+  });
   return (
     <View style={styles.profileHeader}>
       <View style={styles.avatar}>
-        <Ionicons name="person-outline" size={48} color={COLORS.primary} />
+        {profile.profile_pic_url ? (
+          <Image 
+            source={{ uri: profile.profile_pic_url }} 
+            style={{ width: 90, height: 90, borderRadius: 45 }}
+            resizeMode="cover"
+            onLoad={() => console.log('Profile image loaded successfully')}
+            onError={(error) => console.error('Profile image load error:', error.nativeEvent)}
+          />
+        ) : (
+          <Ionicons name="person-outline" size={48} color={COLORS.primary} />
+        )}
       </View>
       <Text style={styles.profileName}>{profile.name || 'User Name'}</Text>
       <View style={styles.profileDetailsRow}>
@@ -67,13 +84,170 @@ function InfoCard({ title, data, icon }: { title: string; data: any[]; icon: any
         <Ionicons name={icon} size={22} color={COLORS.primary} />
         <Text style={styles.cardTitle}>{title}</Text>
       </View>
-      {data.map((item) => (
-        <View key={item.id} style={styles.cardItem}>
-          <Text style={styles.cardItemText}>{item.name}</Text>
-          <Text style={styles.cardItemDate}>{new Date(item.date).toLocaleDateString()}</Text>
+      {data && data.length > 0 ? (
+        data.map((item) => (
+          <View key={item.id} style={styles.cardItem}>
+            <Text style={styles.cardItemText}>{item.name}</Text>
+            <Text style={styles.cardItemDate}>
+              {item.date ? new Date(item.date).toLocaleDateString() : 'N/A'}
+            </Text>
+          </View>
+        ))
+      ) : (
+        <View style={styles.cardItem}>
+          <Text style={styles.cardItemText}>No data available</Text>
         </View>
-      ))}
+      )}
     </View>
+  );
+}
+
+function CustomizeModal({ visible, onClose, profile, onSave }: { visible: boolean, onClose: () => void, profile: any, onSave: (updated: any) => void }) {
+  const [mealTimes, setMealTimes] = useState({
+    breakfast: profile?.meal_times?.breakfast || '08:00',
+    lunch: profile?.meal_times?.lunch || '13:00',
+    dinner: profile?.meal_times?.dinner || '19:00'
+  });
+  const [alarmTimes, setAlarmTimes] = useState({
+    morning: profile?.alarm_times?.morning || '07:00',
+    evening: profile?.alarm_times?.evening || '21:00'
+  });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  const handleSave = async () => {
+    setLoading(true);
+    setError('');
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user || !profile) {
+        setError('User or profile not found.');
+        setLoading(false);
+        return;
+      }
+
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({
+          meal_times: mealTimes,
+          alarm_times: alarmTimes
+        })
+        .eq('id', profile.id);
+
+      if (updateError) {
+        setError(updateError.message);
+      } else {
+        onSave({ ...profile, meal_times: mealTimes, alarm_times: alarmTimes });
+        onClose();
+      }
+    } catch (e) {
+      setError('Failed to save customization settings.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const TimeInput = ({ label, value, onChange, placeholder }: { label: string, value: string, onChange: (value: string) => void, placeholder: string }) => (
+    <View style={customizeStyles.timeInputContainer}>
+      <Text style={customizeStyles.timeLabel}>{label}</Text>
+      <TextInput
+        style={customizeStyles.timeInput}
+        value={value}
+        onChangeText={onChange}
+        placeholder={placeholder}
+        placeholderTextColor={COLORS.gray}
+      />
+    </View>
+  );
+
+  return (
+    <Modal visible={visible} animationType="slide" transparent>
+      <View style={customizeStyles.modalOverlay}>
+        <View style={customizeStyles.modalContent}>
+          <View style={customizeStyles.modalHeader}>
+            <Text style={customizeStyles.modalTitle}>Customize Settings</Text>
+            <TouchableOpacity onPress={onClose} style={customizeStyles.closeButton}>
+              <Ionicons name="close" size={24} color={COLORS.gray} />
+            </TouchableOpacity>
+          </View>
+
+          <ScrollView style={customizeStyles.scrollContent}>
+            {/* Meal Times Section */}
+            <View style={customizeStyles.section}>
+              <View style={customizeStyles.sectionHeader}>
+                <Ionicons name="restaurant-outline" size={24} color={COLORS.primary} />
+                <Text style={customizeStyles.sectionTitle}>Meal Times</Text>
+              </View>
+              <Text style={customizeStyles.sectionDescription}>
+                Set your preferred meal times to help schedule medication reminders
+              </Text>
+              
+              <TimeInput
+                label="Breakfast"
+                value={mealTimes.breakfast}
+                onChange={(value) => setMealTimes({...mealTimes, breakfast: value})}
+                placeholder="08:00"
+              />
+              <TimeInput
+                label="Lunch"
+                value={mealTimes.lunch}
+                onChange={(value) => setMealTimes({...mealTimes, lunch: value})}
+                placeholder="13:00"
+              />
+              <TimeInput
+                label="Dinner"
+                value={mealTimes.dinner}
+                onChange={(value) => setMealTimes({...mealTimes, dinner: value})}
+                placeholder="19:00"
+              />
+            </View>
+
+            {/* Alarm Times Section */}
+            <View style={customizeStyles.section}>
+              <View style={customizeStyles.sectionHeader}>
+                <Ionicons name="alarm-outline" size={24} color={COLORS.primary} />
+                <Text style={customizeStyles.sectionTitle}>Alarm Times</Text>
+              </View>
+              <Text style={customizeStyles.sectionDescription}>
+                Set general alarm times for medication reminders
+              </Text>
+              
+              <TimeInput
+                label="Morning Alarm"
+                value={alarmTimes.morning}
+                onChange={(value) => setAlarmTimes({...alarmTimes, morning: value})}
+                placeholder="07:00"
+              />
+              <TimeInput
+                label="Evening Alarm"
+                value={alarmTimes.evening}
+                onChange={(value) => setAlarmTimes({...alarmTimes, evening: value})}
+                placeholder="21:00"
+              />
+            </View>
+
+            {error ? <Text style={customizeStyles.errorText}>{error}</Text> : null}
+          </ScrollView>
+
+          <View style={customizeStyles.buttonContainer}>
+            <TouchableOpacity style={customizeStyles.cancelButton} onPress={onClose}>
+              <Text style={customizeStyles.cancelButtonText}>Cancel</Text>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={[customizeStyles.saveButton, loading && customizeStyles.saveButtonDisabled]} 
+              onPress={handleSave}
+              disabled={loading}
+            >
+              {loading ? (
+                <ActivityIndicator color={COLORS.white} size="small" />
+              ) : (
+                <Text style={customizeStyles.saveButtonText}>Save Settings</Text>
+              )}
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    </Modal>
   );
 }
 
@@ -205,6 +379,44 @@ function EditProfileModal({ visible, onClose, profile, onSave }: { visible: bool
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
 
+  // Function to check and create storage bucket if needed
+  const ensureStorageBucket = async () => {
+    try {
+      // Try to list files in the bucket to check if it exists
+      const { data, error } = await supabase.storage.from('profile-pics').list();
+      if (error && error.message.includes('not found')) {
+        console.log('Storage bucket does not exist, creating...');
+        // Note: Bucket creation should be done via Supabase dashboard or migrations
+        // This is just for checking if the bucket exists
+        throw new Error('Storage bucket "profile-pics" does not exist. Please create it in your Supabase dashboard.');
+      }
+      return true;
+    } catch (e: any) {
+      console.error('Storage bucket check failed:', e);
+      throw e;
+    }
+  };
+
+  // Function to validate image before upload
+  const validateImage = (blob: Blob) => {
+    const maxSize = 5 * 1024 * 1024; // 5MB
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png'];
+    
+    if (blob.size === 0) {
+      throw new Error('Image file is empty');
+    }
+    
+    if (blob.size > maxSize) {
+      throw new Error(`Image file is too large. Maximum size is ${maxSize / (1024 * 1024)}MB`);
+    }
+    
+    if (!allowedTypes.includes(blob.type)) {
+      throw new Error(`Unsupported image format. Allowed formats: JPEG, PNG`);
+    }
+    
+    return true;
+  };
+
   useEffect(() => {
     if (visible) {
       setName(profile?.name || '');
@@ -218,15 +430,28 @@ function EditProfileModal({ visible, onClose, profile, onSave }: { visible: bool
 
   const pickImage = async () => {
     setError('');
-    let result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 0.7,
-      base64: false,
-    });
-    if (!result.canceled && result.assets && result.assets.length > 0) {
-      setProfilePic(result.assets[0].uri);
+    try {
+      let result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.9, // Higher quality for better results
+        base64: false, // Disable base64 to avoid conversion issues
+      });
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const asset = result.assets[0];
+        console.log('Image selected:', {
+          uri: asset.uri,
+          type: asset.type,
+          width: asset.width,
+          height: asset.height,
+          fileSize: asset.fileSize
+        });
+        setProfilePic(asset.uri);
+      }
+    } catch (e) {
+      console.error('Image picker error:', e);
+      setError('Failed to pick image');
     }
   };
 
@@ -238,38 +463,95 @@ function EditProfileModal({ visible, onClose, profile, onSave }: { visible: bool
     setUploading(true);
     setError('');
     let uploadedUrl = profilePic;
+    
     // If the profilePic is a local URI, upload to Supabase Storage
     if (profilePic && profilePic.startsWith('file://')) {
       try {
-        const response = await fetch(profilePic);
-        const blob = await response.blob();
-        const fileExt = profilePic.split('.').pop();
-        const fileName = `profile_${profile.id}_${Date.now()}.${fileExt}`;
-        const { data, error: uploadError } = await supabase.storage.from('profile-pics').upload(fileName, blob, { upsert: true });
-        if (uploadError) throw uploadError;
-        const { data: publicUrlData } = supabase.storage.from('profile-pics').getPublicUrl(fileName);
+        console.log('Starting image upload...');
+        
+        // Check if storage bucket exists
+        await ensureStorageBucket();
+        
+        const fileName = `profile_${profile.id}_${Date.now()}.jpg`;
+        console.log('Uploading file:', { fileName, uri: profilePic });
+        
+        // Read file as base64 using FileSystem
+        console.log('Reading file with FileSystem...');
+        const base64Data = await FileSystem.readAsStringAsync(profilePic, {
+          encoding: FileSystem.EncodingType.Base64,
+        });
+        
+        console.log('File read successfully, base64 length:', base64Data.length);
+        
+        // Validate the data
+        if (!base64Data || base64Data.length < 100) {
+          throw new Error('Image file is too small or empty');
+        }
+        
+        // Convert base64 to Uint8Array for upload (React Native compatible)
+        const binaryData = new Uint8Array(atob(base64Data).split('').map(char => char.charCodeAt(0)));
+        console.log('Binary data prepared:', { size: binaryData.length });
+        
+        // Upload binary data to Supabase Storage
+        const { data, error: uploadError } = await supabase.storage
+          .from('profile-pics')
+          .upload(fileName, binaryData, { 
+            upsert: true,
+            contentType: 'image/jpeg'
+          });
+        
+        if (uploadError) {
+          console.error('Upload error:', uploadError);
+          throw new Error(`Upload failed: ${uploadError.message}`);
+        }
+        
+        console.log('Upload successful:', data);
+        
+        // Get public URL
+        const { data: publicUrlData } = supabase.storage
+          .from('profile-pics')
+          .getPublicUrl(fileName);
+        
         uploadedUrl = publicUrlData?.publicUrl || '';
-      } catch (e) {
-        setError('Failed to upload image.');
+        console.log('Public URL:', uploadedUrl);
+        
+      } catch (e: any) {
+        console.error('Image upload error:', e);
+        setError(`Failed to upload image: ${e.message || 'Unknown error'}`);
         setUploading(false);
         return;
       }
     }
+    
     // Update profile in DB
-    const { error: updateError, data: updated } = await supabase.from('profiles').update({
-      name,
-      age: Number(age),
-      gender,
-      profile_type: profileType,
-      profile_pic_url: uploadedUrl,
-    }).eq('id', profile.id).select().single();
-    if (updateError) {
-      setError(updateError.message);
-    } else {
-      onSave(updated);
-      onClose();
+    try {
+      const { error: updateError, data: updated } = await supabase
+        .from('profiles')
+        .update({
+          name,
+          age: Number(age),
+          gender,
+          profile_type: profileType,
+          profile_pic_url: uploadedUrl,
+        })
+        .eq('id', profile.id)
+        .select()
+        .single();
+        
+      if (updateError) {
+        console.error('Profile update error:', updateError);
+        setError(`Failed to update profile: ${updateError.message}`);
+      } else {
+        console.log('Profile updated successfully:', updated);
+        onSave(updated);
+        onClose();
+      }
+    } catch (e: any) {
+      console.error('Profile update error:', e);
+      setError(`Failed to update profile: ${e.message || 'Unknown error'}`);
+    } finally {
+      setUploading(false);
     }
-    setUploading(false);
   };
 
   return (
@@ -346,8 +628,7 @@ function EditProfileModal({ visible, onClose, profile, onSave }: { visible: bool
 
 
 export default function Profile() {
-  const [profile, setProfile] = useState<any>(null);
-  const [profiles, setProfiles] = useState<any[]>([]);
+  const { profile, profiles, setProfile, refreshProfiles, loading: profileLoading } = useProfile();
   const [showSwitchModal, setShowSwitchModal] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
@@ -356,21 +637,17 @@ export default function Profile() {
   const [medications, setMedications] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showCustomizeModal, setShowCustomizeModal] = useState(false);
 
-  // Fetch profiles and set default profile on mount
+  // Get user ID on mount
   useEffect(() => {
-    const fetchProfiles = async () => {
-      setLoading(true);
+    const getUserId = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
         setUserId(user.id);
-        const { data: allProfiles } = await supabase.from('profiles').select('*').eq('user_id', user.id);
-        setProfiles(allProfiles || []);
-        setProfile(allProfiles && allProfiles.length > 0 ? allProfiles[0] : null);
       }
-      setLoading(false);
     };
-    fetchProfiles();
+    getUserId();
   }, []);
 
   // Fetch data for selected profile
@@ -399,19 +676,32 @@ export default function Profile() {
       );
 
       // Fetch Medications for profile
-      const { data: medData } = await supabase
+      const { data: medData, error: medError } = await supabase
         .from('medications')
-        .select('medication_id, name, days_remaining')
+        .select('*')
         .eq('profile_id', profile.id);
-      setMedications(
-        (medData as any[])?.map(m => ({ id: m.medication_id, name: m.name, days_remaining: m.days_remaining })) || []
-      );
+      
+      console.log('Profile - Fetched medications:', medData, 'Error:', medError);
+      
+      if (medError) {
+        console.error('Profile - Medication fetch error:', medError);
+        setMedications([]);
+      } else {
+        const mappedMedications = (medData as any[])?.map(m => ({ 
+          id: m.medication_id || m.id, 
+          name: m.name, 
+          days_remaining: m.days_remaining, 
+          date: m.created_at || m.prescribed_date || new Date().toISOString()
+        })) || [];
+        console.log('Profile - Mapped medications:', mappedMedications);
+        setMedications(mappedMedications);
+      }
       setLoading(false);
     };
     fetchData();
   }, [profile]);
 
-  if (loading) {
+  if (profileLoading || loading) {
     return (
       <View style={[styles.container, styles.centered]}>
         <ActivityIndicator size="large" color={COLORS.primary} />
@@ -429,19 +719,32 @@ export default function Profile() {
         </TouchableOpacity>
         <ProfileHeader profile={profile} />
         <View style={{ alignItems: 'center', marginTop: 12 }}>
-          <TouchableOpacity onPress={() => setShowEditModal(true)} style={{ backgroundColor: COLORS.primary, borderRadius: 8, padding: 8, marginBottom: 8 }}>
-            <Text style={{ color: COLORS.white, fontWeight: 'bold' }}>Edit Profile</Text>
-          </TouchableOpacity>
-          {profile?.profile_pic_url ? (
-            <Image source={{ uri: profile.profile_pic_url }} style={{ width: 80, height: 80, borderRadius: 40, borderWidth: 2, borderColor: COLORS.primary, marginBottom: 8 }} />
-          ) : null}
+          <View style={{ flexDirection: 'row', gap: 12, marginBottom: 8 }}>
+            <TouchableOpacity onPress={() => setShowEditModal(true)} style={{ backgroundColor: COLORS.primary, borderRadius: 8, padding: 8 }}>
+              <Text style={{ color: COLORS.white, fontWeight: 'bold' }}>Edit Profile</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => setShowCustomizeModal(true)} style={{ backgroundColor: COLORS.secondary, borderRadius: 8, padding: 8 }}>
+              <Text style={{ color: COLORS.primary, fontWeight: 'bold' }}>Customize</Text>
+            </TouchableOpacity>
+          </View>
         </View>
         <EditProfileModal visible={showEditModal} onClose={() => setShowEditModal(false)} profile={profile} onSave={async (updated) => {
+          console.log('Profile updated, refreshing data...', updated);
           // Refresh profiles and update selected profile
-          const { data: allProfiles } = await supabase.from('profiles').select('*').eq('user_id', userId);
-          setProfiles(allProfiles || []);
+          await refreshProfiles();
           setProfile(updated);
+          console.log('Profile refresh completed');
         }} />
+        <CustomizeModal 
+          visible={showCustomizeModal} 
+          onClose={() => setShowCustomizeModal(false)} 
+          profile={profile} 
+          onSave={async (updated) => {
+            // Refresh profiles and update selected profile
+            await refreshProfiles();
+            setProfile(updated);
+          }} 
+        />
         {/* ... rest of the sections ... */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Health Record Timeline</Text>
@@ -519,8 +822,7 @@ export default function Profile() {
       {/* Create Profile Modal */}
       {userId && <CreateProfileModal visible={showCreateModal} onClose={() => setShowCreateModal(false)} userId={userId} onCreated={async (newProfile) => {
         // Refresh profiles and select new profile
-        const { data: allProfiles } = await supabase.from('profiles').select('*').eq('user_id', userId);
-        setProfiles(allProfiles || []);
+        await refreshProfiles();
         setProfile(newProfile);
       }} />}
     </ScrollView>
@@ -578,6 +880,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 12,
+  },
+  avatarImage: {
+    width: 90,
+    height: 90,
+    borderRadius: 45,
   },
   profileName: {
     fontSize: 24,
@@ -678,4 +985,121 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: COLORS.gray,
   }
+});
+
+const customizeStyles = StyleSheet.create({
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    backgroundColor: COLORS.white,
+    borderRadius: 20,
+    width: '90%',
+    maxWidth: 400,
+    maxHeight: '80%',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.lightGray,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: COLORS.primary,
+  },
+  closeButton: {
+    padding: 4,
+  },
+  scrollContent: {
+    padding: 20,
+  },
+  section: {
+    marginBottom: 24,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: COLORS.primary,
+    marginLeft: 8,
+  },
+  sectionDescription: {
+    fontSize: 14,
+    color: COLORS.gray,
+    marginBottom: 16,
+    lineHeight: 20,
+  },
+  timeInputContainer: {
+    marginBottom: 16,
+  },
+  timeLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#374151',
+    marginBottom: 8,
+  },
+  timeInput: {
+    borderWidth: 1,
+    borderColor: COLORS.lightGray,
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 16,
+    backgroundColor: COLORS.lightGray,
+  },
+  errorText: {
+    color: COLORS.error,
+    fontSize: 14,
+    marginTop: 8,
+    textAlign: 'center',
+  },
+  buttonContainer: {
+    flexDirection: 'row',
+    padding: 20,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.lightGray,
+    gap: 12,
+  },
+  cancelButton: {
+    flex: 1,
+    backgroundColor: COLORS.lightGray,
+    borderRadius: 8,
+    padding: 12,
+    alignItems: 'center',
+  },
+  cancelButtonText: {
+    color: COLORS.gray,
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  saveButton: {
+    flex: 1,
+    backgroundColor: COLORS.primary,
+    borderRadius: 8,
+    padding: 12,
+    alignItems: 'center',
+  },
+  saveButtonDisabled: {
+    opacity: 0.6,
+  },
+  saveButtonText: {
+    color: COLORS.white,
+    fontSize: 16,
+    fontWeight: '600',
+  },
 }); 

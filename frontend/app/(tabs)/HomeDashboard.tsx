@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, FlatList, Modal, TextInput, TouchableOpacity, ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, FlatList, Modal, TextInput, TouchableOpacity, ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, Image } from 'react-native';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { supabase } from '../../lib/supabase';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useProfile } from '../../lib/ProfileContext';
 
 const COLORS = {
   primary: '#307351',
@@ -12,6 +13,8 @@ const COLORS = {
   lightGray: '#F3F4F6',
   error: '#EF4444',
   warning: '#fbbf24',
+  success: '#10B981',
+  info: '#3B82F6',
 };
 
 // Helper to get greeting
@@ -24,13 +27,71 @@ function getGreeting(name: string | null) {
   return `${greeting}${name ? ', ' + name : ''}!`;
 }
 
-// Sample medication data
-const sampleMedications = [
-  { id: '1', name: 'Aspirin', time: '09:00', status: 'upcoming' },
-  { id: '2', name: 'Metformin', time: '09:30', status: 'upcoming' },
-  { id: '3', name: 'Lisinopril', time: '08:00', status: 'missed' },
-  { id: '4', name: 'Atorvastatin', time: '07:00', status: 'missed' },
-];
+// Helper function to get today's date string
+function getTodayDateStr() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+// Helper function to get next reminder time
+function getNextReminderTime(reminder_times: string[]) {
+  if (!reminder_times || reminder_times.length === 0) return null;
+  const now = new Date();
+  const nowMinutes = now.getHours() * 60 + now.getMinutes();
+  
+  // Find the next reminder time
+  for (const time of reminder_times) {
+    const [h, m] = time.split(':').map(Number);
+    const reminderMinutes = h * 60 + m;
+    if (reminderMinutes > nowMinutes) {
+      return time;
+    }
+  }
+  
+  // If no future reminders today, return the first one for tomorrow
+  return reminder_times[0];
+}
+
+// Helper function to check if medication dose was taken
+function isDoseTaken(medication_id: string, doseTime: string, logs: any[]) {
+  const todayStr = getTodayDateStr();
+  return logs.some(log => 
+    log.medication_id === medication_id && 
+    log.log_time === doseTime && 
+    log.log_date === todayStr && 
+    log.status === 'taken'
+  );
+}
+
+// Helper function to format time
+function formatTime(time: string) {
+  const [hours, minutes] = time.split(':');
+  const hour = parseInt(hours);
+  const ampm = hour >= 12 ? 'PM' : 'AM';
+  const displayHour = hour % 12 || 12;
+  return `${displayHour}:${minutes} ${ampm}`;
+}
+
+// Helper function to get time until reminder
+function getTimeUntil(time: string) {
+  const now = new Date();
+  const [hours, minutes] = time.split(':').map(Number);
+  const reminderTime = new Date();
+  reminderTime.setHours(hours, minutes, 0, 0);
+  
+  if (reminderTime <= now) {
+    reminderTime.setDate(reminderTime.getDate() + 1);
+  }
+  
+  const diff = reminderTime.getTime() - now.getTime();
+  const hoursDiff = Math.floor(diff / (1000 * 60 * 60));
+  const minutesDiff = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+  
+  if (hoursDiff > 0) {
+    return `${hoursDiff}h ${minutesDiff}m`;
+  } else {
+    return `${minutesDiff}m`;
+  }
+}
 
 function FloatingBotButton({ onPress }: { onPress: () => void }) {
   return (
@@ -156,77 +217,167 @@ function ChatBotModal({ visible, onClose }: { visible: boolean, onClose: () => v
   );
 }
 
+function NotificationCard({ 
+  type, 
+  title, 
+  subtitle, 
+  time, 
+  icon, 
+  color, 
+  onPress 
+}: { 
+  type: 'medication' | 'appointment' | 'reminder';
+  title: string;
+  subtitle: string;
+  time: string;
+  icon: string;
+  color: string;
+  onPress?: () => void;
+}) {
+  return (
+    <TouchableOpacity 
+      style={[styles.notificationCard, { borderLeftColor: color }]} 
+      onPress={onPress}
+      activeOpacity={0.8}
+    >
+      <View style={[styles.notificationIcon, { backgroundColor: color + '20' }]}>
+        <Ionicons name={icon as any} size={20} color={color} />
+      </View>
+      <View style={styles.notificationContent}>
+        <Text style={styles.notificationTitle}>{title}</Text>
+        <Text style={styles.notificationSubtitle}>{subtitle}</Text>
+        <View style={styles.notificationTimeRow}>
+          <Ionicons name="time-outline" size={14} color={COLORS.gray} />
+          <Text style={styles.notificationTime}>{time}</Text>
+        </View>
+      </View>
+      <Ionicons name="chevron-forward" size={20} color={COLORS.gray} />
+    </TouchableOpacity>
+  );
+}
+
+function QuickStatsCard({ title, value, icon, color }: { title: string; value: string; icon: string; color: string }) {
+  // Create a more sophisticated background color based on the theme
+  const getBackgroundColor = (color: string) => {
+    if (color === COLORS.primary) return '#E8F5E8'; // Light green background
+    if (color === COLORS.secondary) return '#F0FDF4'; // Very light green background
+    if (color === COLORS.error) return '#FEF2F2'; // Light red background
+    return '#F8FAFC'; // Default light background
+  };
+
+  return (
+    <View style={[styles.quickStatsCard, { backgroundColor: getBackgroundColor(color) }]}>
+      <View style={[styles.quickStatsIcon, { backgroundColor: color }]}>
+        <Ionicons name={icon as any} size={24} color={COLORS.white} />
+      </View>
+      <Text style={[styles.quickStatsValue, { color: color }]}>{value}</Text>
+      <Text style={styles.quickStatsTitle}>{title}</Text>
+    </View>
+  );
+}
+
 export default function HomeDashboard() {
-  const [name, setName] = useState<string | null>(null);
+  const { profile, loading: profileLoading } = useProfile();
   const [loading, setLoading] = useState(true);
   const [medications, setMedications] = useState<any[]>([]);
   const [appointments, setAppointments] = useState<any[]>([]);
   const [logs, setLogs] = useState<any[]>([]);
+  const [healthRecords, setHealthRecords] = useState<any[]>([]);
+  const [recentActivity, setRecentActivity] = useState<any[]>([]);
   const [showBot, setShowBot] = useState(false);
 
+  // Fetch data when profile changes
   useEffect(() => {
-    const fetchName = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('name')
-          .eq('user_id', user.id)
-          .single();
-        if (!error && data && data.name) {
-          setName(data.name);
-        } else {
-          setName(null);
-        }
-        // Fetch medications for this user
+    const fetchData = async () => {
+      if (!profile) {
+        setMedications([]);
+        setAppointments([]);
+        setLogs([]);
+        setHealthRecords([]);
+        setRecentActivity([]);
+        setLoading(false);
+        return;
+      }
+
+      setLoading(true);
+      try {
+        // Fetch medications for this profile
         const { data: meds, error: medsError } = await supabase
           .from('medications')
           .select('*')
-          .eq('user_id', user.id);
+          .eq('profile_id', profile.id);
         if (!medsError && meds) {
+          console.log('Fetched medications:', meds);
+          console.log('Sample medication fields:', meds[0] ? Object.keys(meds[0]) : 'No medications');
           setMedications(meds);
         } else {
+          console.error('Medications fetch error:', medsError);
           setMedications([]);
         }
-        // Fetch appointments for this user
+
+        // Fetch appointments for this profile
         const { data: appts, error: apptError } = await supabase
           .from('appointments')
           .select('*')
-          .eq('user_id', user.id);
+          .eq('profile_id', profile.id);
         if (!apptError && appts) {
           setAppointments(appts);
         } else {
           setAppointments([]);
         }
-        // Fetch today's medication logs
-        const todayStr = new Date().toISOString().slice(0, 10);
+
+        // Fetch health records for this profile
+        const { data: records, error: recordsError } = await supabase
+          .from('health_records')
+          .select('*')
+          .eq('profile_id', profile.id);
+        if (!recordsError && records) {
+          setHealthRecords(records);
+        } else {
+          setHealthRecords([]);
+        }
+
+        // Fetch recent medication logs for this profile (last 2 days)
+        const twoDaysAgo = new Date();
+        twoDaysAgo.setDate(twoDaysAgo.getDate() - 2);
+        const twoDaysAgoStr = twoDaysAgo.toISOString().slice(0, 10);
         const { data: logData, error: logError } = await supabase
           .from('medication_logs')
           .select('*')
-          .eq('user_id', user.id)
-          .eq('log_date', todayStr);
+          .eq('profile_id', profile.id)
+          .gte('log_date', twoDaysAgoStr)
+          .order('log_date', { ascending: false });
         if (!logError && logData) {
           setLogs(logData);
         } else {
           setLogs([]);
         }
+      } catch (error) {
+        console.error('Error fetching dashboard data:', error);
+        setMedications([]);
+        setAppointments([]);
+        setLogs([]);
+        setHealthRecords([]);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     };
-    fetchName();
-  }, []);
 
-  // Re-fetch logs when a medication log is updated (polling or subscribe in production)
-  // For now, add a function to refresh logs and call it after a log update elsewhere if needed
+    fetchData();
+  }, [profile]);
+
+  // Re-fetch logs when a medication log is updated
   const refreshLogs = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-    const todayStr = new Date().toISOString().slice(0, 10);
+    if (!profile) return;
+    const twoDaysAgo = new Date();
+    twoDaysAgo.setDate(twoDaysAgo.getDate() - 2);
+    const twoDaysAgoStr = twoDaysAgo.toISOString().slice(0, 10);
     const { data: logData, error: logError } = await supabase
       .from('medication_logs')
       .select('*')
-      .eq('user_id', user.id)
-      .eq('log_date', todayStr);
+      .eq('profile_id', profile.id)
+      .gte('log_date', twoDaysAgoStr)
+      .order('log_date', { ascending: false });
     if (!logError && logData) {
       setLogs(logData);
     } else {
@@ -234,24 +385,174 @@ export default function HomeDashboard() {
     }
   };
 
+  // Generate recent activity from the last 2 days
+  const generateRecentActivity = () => {
+    const twoDaysAgo = new Date();
+    twoDaysAgo.setDate(twoDaysAgo.getDate() - 2);
+    const twoDaysAgoStr = twoDaysAgo.toISOString().slice(0, 10);
+    
+    console.log('Generating recent activity for last 2 days from:', twoDaysAgoStr);
+    console.log('Total medications:', medications.length);
+    console.log('Total appointments:', appointments.length);
+    console.log('Total health records:', healthRecords.length);
+    console.log('Total logs:', logs.length);
+    
+    const activity: any[] = [];
+
+    // Add recent medication logs
+    logs.forEach(log => {
+      if (log.log_date >= twoDaysAgoStr) {
+        const medication = medications.find(m => m.medication_id === log.medication_id);
+        activity.push({
+          id: `log_${log.id}`,
+          type: 'medication_log',
+          title: `Took ${medication?.name || 'medication'}`,
+          subtitle: `Medication dose taken`,
+          time: `${formatTime(log.log_time)} • ${log.log_date}`,
+          icon: 'checkmark-circle',
+          color: COLORS.success,
+          timestamp: new Date(`${log.log_date}T${log.log_time}`).getTime(),
+          date: log.log_date
+        });
+      }
+    });
+
+    // Add recently added/updated medications
+    medications.forEach(med => {
+      console.log('Checking medication:', med.name, 'created_at:', med.created_at, 'updated_at:', med.updated_at, 'prescribed_date:', med.prescribed_date);
+      
+      // Try different possible date fields
+      const createdDate = new Date(med.created_at || med.prescribed_date || med.inserted_at || new Date());
+      const updatedDate = new Date(med.updated_at || med.modified_at || med.created_at || med.prescribed_date || new Date());
+      const isRecent = createdDate >= twoDaysAgo || updatedDate >= twoDaysAgo;
+      
+      console.log('Medication dates - created:', createdDate, 'updated:', updatedDate, 'twoDaysAgo:', twoDaysAgo, 'isRecent:', isRecent);
+      
+      if (isRecent) {
+        console.log('Adding medication to activity:', med.name);
+        activity.push({
+          id: `med_${med.medication_id || med.id}`,
+          type: 'medication',
+          title: `Added ${med.name}`,
+          subtitle: `${med.dosage} • ${med.frequency}x/day`,
+          time: createdDate.toLocaleDateString(),
+          icon: 'medkit',
+          color: COLORS.primary,
+          timestamp: createdDate.getTime(),
+          date: createdDate.toISOString().slice(0, 10)
+        });
+      }
+    });
+
+    // Add recently added/updated appointments
+    appointments.forEach(appt => {
+      const createdDate = new Date(appt.created_at);
+      const updatedDate = new Date(appt.updated_at || appt.created_at);
+      const isRecent = createdDate >= twoDaysAgo || updatedDate >= twoDaysAgo;
+      
+      if (isRecent) {
+        activity.push({
+          id: `appt_${appt.appointment_id}`,
+          type: 'appointment',
+          title: `Appointment with ${appt.doctor_name}`,
+          subtitle: appt.visit_reason || 'Medical appointment',
+          time: appt.date,
+          icon: 'calendar',
+          color: COLORS.info,
+          timestamp: createdDate.getTime(),
+          date: appt.date
+        });
+      }
+    });
+
+    // Add recently added/updated health records
+    healthRecords.forEach(record => {
+      const createdDate = new Date(record.created_at);
+      const updatedDate = new Date(record.updated_at || record.created_at);
+      const isRecent = createdDate >= twoDaysAgo || updatedDate >= twoDaysAgo;
+      
+      if (isRecent) {
+        activity.push({
+          id: `record_${record.id}`,
+          type: 'health_record',
+          title: `Health record: ${record.title}`,
+          subtitle: record.details?.substring(0, 50) + (record.details?.length > 50 ? '...' : ''),
+          time: record.event_date,
+          icon: 'medical',
+          color: COLORS.warning,
+          timestamp: createdDate.getTime(),
+          date: record.event_date
+        });
+      }
+    });
+
+    // Sort by timestamp (most recent first) and take top 8
+    const sortedActivity = activity
+      .sort((a, b) => b.timestamp - a.timestamp)
+      .slice(0, 8);
+    
+    console.log('Generated activity items:', sortedActivity.length, 'items:', sortedActivity);
+    
+    // If no recent activity found, show all medications as a fallback
+    if (sortedActivity.length === 0 && medications.length > 0) {
+      console.log('No recent activity found, showing all medications as fallback');
+      medications.slice(0, 3).forEach(med => {
+        const createdDate = new Date(med.created_at || med.prescribed_date || med.inserted_at || new Date());
+        activity.push({
+          id: `med_fallback_${med.medication_id || med.id}`,
+          type: 'medication',
+          title: `Added ${med.name}`,
+          subtitle: `${med.dosage} • ${med.frequency}x/day`,
+          time: createdDate.toLocaleDateString(),
+          icon: 'medkit',
+          color: COLORS.primary,
+          timestamp: createdDate.getTime(),
+          date: createdDate.toISOString().slice(0, 10)
+        });
+      });
+      return activity.slice(0, 3);
+    }
+    
+    return sortedActivity;
+  };
+
+  // Update recent activity when data changes
+  useEffect(() => {
+    if (medications.length > 0 || appointments.length > 0 || healthRecords.length > 0 || logs.length > 0) {
+      const activity = generateRecentActivity();
+      setRecentActivity(activity);
+    }
+  }, [medications, appointments, healthRecords, logs]);
+
   // Filter medications for upcoming hour and missed
   const now = new Date();
   const nowMinutes = now.getHours() * 60 + now.getMinutes();
-  // Assume each medication has a reminder_times array and logs for today
-  const todayStr = now.toISOString().slice(0, 10);
+  const todayStr = getTodayDateStr();
   const upcoming: any[] = [];
   const missed: any[] = [];
+  
   medications.forEach(med => {
-    if (Array.isArray(med.reminder_times)) {
+    if (Array.isArray(med.reminder_times) && med.reminder_times.length > 0) {
       med.reminder_times.forEach((t: string) => {
         const [h, m] = t.split(':').map(Number);
         const medMinutes = h * 60 + m;
         // Check if this dose has a log for today
-        const taken = logs.some(l => l.medication_id === med.medication_id && l.log_time === t && l.log_date === todayStr && l.status === 'taken');
+        const taken = isDoseTaken(med.medication_id, t, logs);
+        
         if (!taken && medMinutes >= nowMinutes && medMinutes < nowMinutes + 60) {
-          upcoming.push({ id: med.medication_id + t, name: med.name, time: t });
+          upcoming.push({ 
+            id: med.medication_id + t, 
+            name: med.name, 
+            time: t,
+            medication_id: med.medication_id 
+          });
         } else if (!taken && medMinutes < nowMinutes) {
-          missed.push({ id: med.medication_id + t, name: med.name, time: t });
+          missed.push({ 
+            id: med.medication_id + t, 
+            name: med.name, 
+            time: t,
+            medication_id: med.medication_id 
+          });
         }
       });
     }
@@ -267,88 +568,185 @@ export default function HomeDashboard() {
     return apptDate >= today && apptDate <= weekFromNow;
   });
 
+  // Calculate quick stats
+  const totalMedications = medications.length;
+  const activeMedications = medications.filter(m => m.days_remaining === null || m.days_remaining > 0).length;
+  const todayTaken = logs.filter(l => l.status === 'taken').length;
+  const upcomingApptCount = upcomingAppointments.length;
+
+  // Show loading state
+  if (profileLoading || loading) {
+    return (
+      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+        <ActivityIndicator size="large" color={COLORS.primary} />
+      </View>
+    );
+  }
+
+  // Show no profile state
+  if (!profile) {
+    return (
+      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center', padding: 24 }]}>
+        <Ionicons name="person-circle-outline" size={64} color={COLORS.gray} style={{ marginBottom: 16 }} />
+        <Text style={[styles.greeting, { color: COLORS.gray, textAlign: 'center' }]}>No profile selected</Text>
+        <Text style={{ color: COLORS.gray, textAlign: 'center', marginTop: 8 }}>
+          Please create or select a profile in the Profile tab to view your dashboard.
+        </Text>
+      </View>
+    );
+  }
+
   return (
-    <View style={styles.dashboardBg}>
-      {/* Greeting */}
-      <LinearGradient
-        colors={[COLORS.primary, COLORS.secondary]}
-        style={styles.greetingBg}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-      >
-        <View style={styles.greetingContainer}>
-          <Ionicons name="sunny-outline" size={40} color={COLORS.white} style={{ marginRight: 16 }} />
-          <Text style={styles.greeting}>{getGreeting(name)}</Text>
+    <View style={styles.container}>
+      <ScrollView showsVerticalScrollIndicator={false}>
+        {/* Header with Profile Picture */}
+        <View style={styles.headerGradient}>
+          <View style={styles.headerContent}>
+            <View style={styles.profileImageContainer}>
+              {profile.profile_pic_url ? (
+                <Image 
+                  source={{ uri: profile.profile_pic_url }} 
+                  style={styles.profileImage}
+                  resizeMode="cover"
+                />
+              ) : (
+                <View style={[styles.profileImage, styles.profileImagePlaceholder]}>
+                  <Ionicons name="person" size={40} color={COLORS.primary} />
+                </View>
+              )}
+            </View>
+            <Text style={styles.greeting}>{getGreeting(profile?.name || null)}</Text>
+          </View>
         </View>
-      </LinearGradient>
-      {/* Upcoming Medications */}
-      <View style={styles.sectionDivider} />
-      <View style={styles.sectionHeaderRow}>
-        <Ionicons name="alarm-outline" size={20} color={COLORS.primary} style={{ marginRight: 8 }} />
-        <Text style={styles.sectionTitle}>Upcoming Medications (Next Hour)</Text>
-      </View>
-      {upcoming.length === 0 ? (
-        <View style={styles.emptyState}><Ionicons name="checkmark-done-outline" size={22} color={COLORS.gray} /><Text style={styles.emptyText}>No medications in the next hour.</Text></View>
-      ) : (
-        <FlatList
-          data={upcoming}
-          keyExtractor={item => item.id}
-          renderItem={({ item }) => (
-            <View style={[styles.medCardUpcoming, styles.cardShadow]}>
-              <MaterialIcons name="medication" size={22} color={COLORS.primary} style={{ marginRight: 8 }} />
-              <Text style={styles.medCardText}>{item.name}</Text>
-              <View style={styles.pillUpcoming}><Text style={styles.pillText}>{item.time}</Text></View>
+
+        {/* Quick Stats */}
+        <View style={styles.quickStatsContainer}>
+          <View style={styles.quickStatsRow}>
+            <QuickStatsCard 
+              title="Active Meds" 
+              value={activeMedications.toString()} 
+              icon="medkit" 
+              color={COLORS.primary} 
+            />
+            <QuickStatsCard 
+              title="Taken Today" 
+              value={todayTaken.toString()} 
+              icon="checkmark-circle" 
+              color={COLORS.secondary} 
+            />
+          </View>
+          <View style={styles.quickStatsRow}>
+            <QuickStatsCard 
+              title="Upcoming" 
+              value={upcoming.length.toString()} 
+              icon="alarm" 
+              color={COLORS.primary} 
+            />
+            <QuickStatsCard 
+              title="Missed" 
+              value={missed.length.toString()} 
+              icon="close-circle" 
+              color={COLORS.error} 
+            />
+          </View>
+        </View>
+
+        {/* Notifications Section */}
+        <View style={styles.sectionContainer}>
+          <View style={styles.sectionHeader}>
+            <Ionicons name="notifications" size={24} color={COLORS.primary} />
+            <Text style={styles.sectionTitle}>Today's Notifications</Text>
+          </View>
+          
+          {upcoming.length === 0 && missed.length === 0 && upcomingAppointments.length === 0 ? (
+            <View style={styles.emptyState}>
+              <Ionicons name="checkmark-done-circle" size={48} color={COLORS.success} />
+              <Text style={styles.emptyStateTitle}>All caught up!</Text>
+              <Text style={styles.emptyStateSubtitle}>No pending notifications for today.</Text>
+            </View>
+          ) : (
+            <View style={styles.notificationsList}>
+              {/* Upcoming Medications */}
+              {upcoming.map(item => (
+                <NotificationCard
+                  key={item.id}
+                  type="medication"
+                  title={item.name}
+                  subtitle="Time to take your medication"
+                  time={`${formatTime(item.time)} (in ${getTimeUntil(item.time)})`}
+                  icon="alarm"
+                  color={COLORS.warning}
+                />
+              ))}
+              
+              {/* Missed Medications */}
+              {missed.map(item => (
+                <NotificationCard
+                  key={item.id}
+                  type="medication"
+                  title={item.name}
+                  subtitle="Missed medication dose"
+                  time={`${formatTime(item.time)} (${getTimeUntil(item.time)} ago)`}
+                  icon="close-circle"
+                  color={COLORS.error}
+                />
+              ))}
+              
+              {/* Upcoming Appointments */}
+              {upcomingAppointments.slice(0, 3).map(item => (
+                <NotificationCard
+                  key={item.appointment_id || item.date}
+                  type="appointment"
+                  title={item.doctor_name}
+                  subtitle={item.visit_reason || 'Appointment'}
+                  time={new Date(item.date).toLocaleDateString()}
+                  icon="calendar"
+                  color={COLORS.info}
+                />
+              ))}
             </View>
           )}
-        />
-      )}
-      {/* Missed Medications */}
-      <View style={styles.sectionDivider} />
-      <View style={styles.sectionHeaderRow}>
-        <Ionicons name="close-circle-outline" size={20} color={COLORS.error} style={{ marginRight: 8 }} />
-        <Text style={styles.sectionTitle}>Missed Medications</Text>
-      </View>
-      {missed.length === 0 ? (
-        <View style={styles.emptyState}><Ionicons name="checkmark-circle-outline" size={22} color={COLORS.gray} /><Text style={styles.emptyText}>No missed medications.</Text></View>
-      ) : (
-        <FlatList
-          data={missed}
-          keyExtractor={item => item.id}
-          renderItem={({ item }) => (
-            <View style={[styles.medCardMissed, styles.cardShadow]}>
-              <MaterialIcons name="medication" size={22} color={COLORS.error} style={{ marginRight: 8 }} />
-              <Text style={styles.medCardText}>{item.name}</Text>
-              <View style={styles.pillMissed}><Text style={styles.pillText}>{item.time}</Text></View>
-            </View>
-          )}
-        />
-      )}
-      {/* Upcoming Appointments */}
-      <View style={styles.sectionDivider} />
-      <View style={styles.sectionHeaderRow}>
-        <Ionicons name="calendar-outline" size={20} color={COLORS.primary} style={{ marginRight: 8 }} />
-        <Text style={styles.sectionTitle}>Upcoming Appointments (Next 7 Days)</Text>
-      </View>
-      {upcomingAppointments.length === 0 ? (
-        <View style={styles.emptyState}><Ionicons name="calendar-outline" size={22} color={COLORS.gray} /><Text style={styles.emptyText}>No upcoming appointments.</Text></View>
-      ) : (
-        <FlatList
-          data={upcomingAppointments}
-          keyExtractor={item => item.id || item.date}
-          renderItem={({ item }) => (
-            <View style={[styles.appointmentCard, styles.cardShadow]}>
-              <Ionicons name="calendar-outline" size={20} color={COLORS.primary} style={{ marginRight: 8, marginTop: 2 }} />
-              <View style={{ flex: 1 }}>
-                <Text style={styles.appointmentDate}>{item.date}</Text>
-                <Text style={styles.appointmentDoctor}>{item.doctor_name}</Text>
-                {item.visit_reason && <Text style={styles.appointmentReason}>{item.visit_reason}</Text>}
-                {item.notes && <Text style={styles.appointmentNotes}>{item.notes}</Text>}
+        </View>
+
+        {/* Recent Activity */}
+        <View style={styles.sectionContainer}>
+          <View style={styles.sectionHeader}>
+            <Ionicons name="time" size={24} color={COLORS.primary} />
+            <Text style={styles.sectionTitle}>Recent Activity (Last 2 Days)</Text>
+          </View>
+          
+          <View style={styles.activityList}>
+            {recentActivity.length > 0 ? (
+              recentActivity.map((activity) => (
+                <View key={activity.id} style={styles.activityItem}>
+                  <View style={[styles.activityIcon, { backgroundColor: activity.color + '20' }]}>
+                    <Ionicons name={activity.icon as any} size={16} color={activity.color} />
+                  </View>
+                  <View style={styles.activityContent}>
+                    <Text style={styles.activityTitle}>
+                      {activity.title}
+                    </Text>
+                    <Text style={styles.activitySubtitle}>
+                      {activity.subtitle}
+                    </Text>
+                    <Text style={styles.activityTime}>
+                      {activity.time}
+                    </Text>
+                  </View>
+                </View>
+              ))
+            ) : (
+              <View style={styles.emptyActivity}>
+                <Text style={styles.emptyActivityText}>No recent activity</Text>
               </View>
-              <View style={styles.pillAppointment}><Text style={styles.pillText}>Upcoming</Text></View>
-            </View>
-          )}
-        />
-      )}
+            )}
+          </View>
+        </View>
+        
+        {/* Add bottom padding for floating button */}
+        <View style={{ height: 100 }} />
+      </ScrollView>
+      
       <FloatingBotButton onPress={() => setShowBot(true)} />
       <ChatBotModal visible={showBot} onClose={() => setShowBot(false)} />
     </View>
@@ -356,171 +754,239 @@ export default function HomeDashboard() {
 }
 
 const styles = StyleSheet.create({
-  dashboardBg: {
-    flex: 1,
-    backgroundColor: '#f8fafc',
-  },
   container: { flex: 1, backgroundColor: COLORS.white, padding: 0 },
-  greetingBg: {
-    backgroundColor: COLORS.primary,
+  headerGradient: {
     borderRadius: 24,
     marginTop: 64,
     marginHorizontal: 24,
     marginBottom: 24,
-    paddingVertical: 28, // more padding
+    paddingVertical: 32,
     paddingHorizontal: 24,
+    backgroundColor: 'rgba(255, 255, 255, 0.25)',
+    backdropFilter: 'blur(20px)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
     shadowColor: COLORS.primary,
-    shadowOpacity: 0.10,
-    shadowRadius: 12,
-    elevation: 4,
+    shadowOpacity: 0.08,
+    shadowRadius: 16,
+    elevation: 3,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  greetingContainer: {
-    flexDirection: 'row',
+  headerContent: {
+    flexDirection: 'column',
     alignItems: 'center',
     justifyContent: 'center',
     width: '100%',
   },
+  profileImageContainer: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    overflow: 'hidden',
+    marginBottom: 16,
+    shadowColor: COLORS.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  profileImage: {
+    width: '100%',
+    height: '100%',
+  },
+  profileImagePlaceholder: {
+    backgroundColor: COLORS.lightGray,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  profileInfo: {
+    flex: 1,
+  },
   greeting: {
-    fontSize: 28,
+    fontSize: 24,
     fontWeight: 'bold',
-    color: COLORS.white,
+    color: COLORS.primary,
     textAlign: 'center',
-    marginLeft: 12,
-    flexShrink: 1,
+  },
+  quickStatsContainer: {
+    marginHorizontal: 20,
+    marginBottom: 28,
+  },
+  quickStatsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+    gap: 12,
+  },
+  quickStatsCard: {
+    flex: 1,
+    aspectRatio: 1.2,
+    borderRadius: 20,
+    padding: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(48, 115, 81, 0.1)',
+    shadowColor: COLORS.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  quickStatsIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  quickStatsValue: {
+    fontSize: 32,
+    fontWeight: '800',
+    color: COLORS.primary,
+    marginBottom: 8,
+  },
+  quickStatsTitle: {
+    fontSize: 14,
+    color: COLORS.gray,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+  sectionContainer: {
+    marginHorizontal: 16,
+    marginBottom: 24,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
   },
   sectionTitle: {
     fontSize: 18,
     fontWeight: 'bold',
     color: COLORS.primary,
-    marginTop: 8,
-    marginBottom: 4,
-    paddingHorizontal: 24,
-  },
-  medCardUpcoming: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: COLORS.lightGray,
-    borderRadius: 12,
-    padding: 14,
-    marginHorizontal: 16,
-    marginBottom: 10,
-  },
-  medCardMissed: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#ffeaea',
-    borderRadius: 12,
-    padding: 14,
-    marginHorizontal: 16,
-    marginBottom: 4,
-  },
-  medCardText: {
-    fontSize: 16,
-    color: COLORS.primary,
-    fontWeight: 'bold',
-    flex: 1,
-  },
-  medCardTime: {
-    fontSize: 15,
-    color: COLORS.gray,
     marginLeft: 8,
   },
-  emptyText: {
-    fontSize: 15,
-    color: COLORS.gray,
-    textAlign: 'center',
-    marginBottom: 4,
-  },
-  appointmentCard: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
+  notificationsList: {
     backgroundColor: COLORS.lightGray,
+    borderRadius: 16,
+    padding: 12,
+    gap: 8,
+  },
+  notificationCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.white,
     borderRadius: 14,
     padding: 14,
-    marginHorizontal: 16,
-    marginBottom: 4,
-    shadowColor: COLORS.primary,
+    marginBottom: 10,
+    borderLeftWidth: 4,
+    shadowColor: COLORS.gray,
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 2,
+    shadowRadius: 6,
+    elevation: 1,
   },
-  appointmentDate: {
-    fontSize: 15,
-    color: COLORS.primary,
-    fontWeight: 'bold',
-    marginBottom: 2,
+  notificationIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
   },
-  appointmentDoctor: {
+  notificationContent: {
+    flex: 1,
+  },
+  notificationTitle: {
     fontSize: 16,
-    color: COLORS.primary,
     fontWeight: 'bold',
+    color: COLORS.primary,
     marginBottom: 2,
   },
-  appointmentReason: {
-    fontSize: 15,
-    color: COLORS.gray,
-    marginBottom: 2,
-  },
-  appointmentNotes: {
+  notificationSubtitle: {
     fontSize: 14,
     color: COLORS.gray,
+    marginBottom: 4,
   },
-  sectionDivider: {
-    height: 1,
-    backgroundColor: COLORS.lightGray,
-    marginVertical: 10,
-    marginHorizontal: 16,
-    borderRadius: 1,
-  },
-  sectionHeaderRow: {
+  notificationTimeRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 2,
-    marginTop: 2,
-    paddingHorizontal: 24,
   },
-  cardShadow: {
-    shadowColor: COLORS.primary,
-    shadowOpacity: 0.10,
-    shadowRadius: 10,
-    elevation: 3,
-  },
-  pillUpcoming: {
-    backgroundColor: COLORS.primary,
-    borderRadius: 12,
-    paddingHorizontal: 10,
-    paddingVertical: 2,
-    marginLeft: 8,
-    alignSelf: 'center',
-  },
-  pillMissed: {
-    backgroundColor: COLORS.error,
-    borderRadius: 12,
-    paddingHorizontal: 10,
-    paddingVertical: 2,
-    marginLeft: 8,
-    alignSelf: 'center',
-  },
-  pillAppointment: {
-    backgroundColor: COLORS.secondary,
-    borderRadius: 12,
-    paddingHorizontal: 10,
-    paddingVertical: 2,
-    marginLeft: 8,
-    alignSelf: 'center',
-  },
-  pillText: {
-    color: COLORS.white,
-    fontWeight: 'bold',
+  notificationTime: {
     fontSize: 13,
+    color: COLORS.gray,
+    marginLeft: 4,
+  },
+  activityList: {
+    backgroundColor: COLORS.lightGray,
+    borderRadius: 16,
+    padding: 12,
+    gap: 8,
+  },
+  activityItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.white,
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 8,
+    shadowColor: COLORS.gray,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 1,
+  },
+  activityIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  activityContent: {
+    flex: 1,
+  },
+  activityTitle: {
+    fontSize: 15,
+    fontWeight: 'bold',
+    color: COLORS.primary,
+    marginBottom: 2,
+  },
+  activitySubtitle: {
+    fontSize: 13,
+    color: COLORS.gray,
+    marginBottom: 2,
+  },
+  activityTime: {
+    fontSize: 12,
+    color: COLORS.gray,
+    opacity: 0.8,
   },
   emptyState: {
-    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    marginVertical: 8,
-    gap: 8,
+    paddingVertical: 30,
+  },
+  emptyStateTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: COLORS.primary,
+    marginTop: 10,
+  },
+  emptyStateSubtitle: {
+    fontSize: 15,
+    color: COLORS.gray,
+    marginTop: 4,
+  },
+  emptyActivity: {
+    alignItems: 'center',
+    paddingVertical: 20,
+  },
+  emptyActivityText: {
+    fontSize: 15,
+    color: COLORS.gray,
   },
 }); 
