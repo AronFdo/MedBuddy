@@ -17,7 +17,7 @@ const COLORS = {
   error: '#EF4444',
 };
 
-function CustomHeader({ title }: { title: string }) {
+function CustomHeader({ title, onSettingsPress }: { title: string; onSettingsPress?: () => void }) {
   const router = useRouter();
   return (
     <View style={styles.headerContainer}>
@@ -25,8 +25,116 @@ function CustomHeader({ title }: { title: string }) {
         <Ionicons name="arrow-back" size={24} color={COLORS.white} />
       </TouchableOpacity>
       <Text style={styles.headerTitle}>{title}</Text>
-      <View style={{ width: 32 }} />
+      {onSettingsPress ? (
+        <TouchableOpacity style={styles.headerSettingsButton} onPress={onSettingsPress}>
+          <Ionicons name="settings-outline" size={24} color={COLORS.white} />
+        </TouchableOpacity>
+      ) : (
+        <View style={{ width: 32 }} />
+      )}
     </View>
+  );
+}
+
+function FloatingSettingsButton({ onPress }: { onPress: () => void }) {
+  return (
+    <TouchableOpacity style={styles.floatingSettingsButton} onPress={onPress}>
+      <Ionicons name="settings-outline" size={24} color={COLORS.white} />
+    </TouchableOpacity>
+  );
+}
+
+function ProfileSidebar({ visible, onClose, onEditProfile, onCustomize, onSwitchProfile, onLogout, onChangePassword }: { 
+  visible: boolean; 
+  onClose: () => void; 
+  onEditProfile: () => void; 
+  onCustomize: () => void; 
+  onSwitchProfile: () => void; 
+  onLogout: () => void; 
+  onChangePassword: () => void; 
+}) {
+  return (
+    <Modal
+      visible={visible}
+      animationType="slide"
+      transparent
+      onRequestClose={onClose}
+    >
+      <View style={styles.sidebarOverlay}>
+        <TouchableOpacity style={styles.sidebarBackdrop} onPress={onClose} />
+        <View style={styles.sidebarContent}>
+          <View style={styles.sidebarHeader}>
+            <Text style={styles.sidebarTitle}>Settings</Text>
+            <TouchableOpacity style={styles.sidebarCloseButton} onPress={onClose}>
+              <Ionicons name="close" size={24} color={COLORS.primary} />
+            </TouchableOpacity>
+          </View>
+          
+          <View style={styles.sidebarMenu}>
+            <TouchableOpacity 
+              style={styles.sidebarMenuItem} 
+              onPress={() => {
+                onEditProfile();
+                onClose();
+              }}
+            >
+              <Ionicons name="create-outline" size={24} color={COLORS.primary} />
+              <Text style={styles.sidebarMenuItemText}>Edit Profile</Text>
+              <Ionicons name="chevron-forward" size={20} color={COLORS.gray} />
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
+              style={styles.sidebarMenuItem} 
+              onPress={() => {
+                onCustomize();
+                onClose();
+              }}
+            >
+              <Ionicons name="settings-outline" size={24} color={COLORS.primary} />
+              <Text style={styles.sidebarMenuItemText}>Customize</Text>
+              <Ionicons name="chevron-forward" size={20} color={COLORS.gray} />
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
+              style={styles.sidebarMenuItem} 
+              onPress={() => {
+                onSwitchProfile();
+                onClose();
+              }}
+            >
+              <Ionicons name="people-outline" size={24} color={COLORS.primary} />
+              <Text style={styles.sidebarMenuItemText}>Switch Profile</Text>
+              <Ionicons name="chevron-forward" size={20} color={COLORS.gray} />
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
+              style={styles.sidebarMenuItem} 
+              onPress={() => {
+                onChangePassword();
+                onClose();
+              }}
+            >
+              <Ionicons name="lock-closed-outline" size={24} color={COLORS.primary} />
+              <Text style={styles.sidebarMenuItemText}>Change Password</Text>
+              <Ionicons name="chevron-forward" size={20} color={COLORS.gray} />
+            </TouchableOpacity>
+            
+            <View style={styles.sidebarDivider} />
+            
+            <TouchableOpacity 
+              style={[styles.sidebarMenuItem, styles.sidebarMenuItemDanger]} 
+              onPress={() => {
+                onLogout();
+                onClose();
+              }}
+            >
+              <Ionicons name="log-out-outline" size={24} color={COLORS.error} />
+              <Text style={[styles.sidebarMenuItemText, styles.sidebarMenuItemTextDanger]}>Logout</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    </Modal>
   );
 }
 
@@ -38,24 +146,37 @@ function ProfileHeader({ profile }: { profile: any }) {
   });
   return (
     <View style={styles.profileHeader}>
-      <View style={styles.avatar}>
-        {profile.profile_pic_url ? (
-          <Image 
-            source={{ uri: profile.profile_pic_url }} 
-            style={{ width: 90, height: 90, borderRadius: 45 }}
-            resizeMode="cover"
-            onLoad={() => console.log('Profile image loaded successfully')}
-            onError={(error) => console.error('Profile image load error:', error.nativeEvent)}
-          />
-        ) : (
-          <Ionicons name="person-outline" size={48} color={COLORS.primary} />
-        )}
-      </View>
-      <Text style={styles.profileName}>{profile.name || 'User Name'}</Text>
-      <View style={styles.profileDetailsRow}>
-        <Text style={styles.profileDetail}>{profile.age ? `${profile.age} years` : 'N/A'}</Text>
-        <Text style={styles.profileDetail}>•</Text>
-        <Text style={styles.profileDetail}>{profile.gender || 'N/A'}</Text>
+      <View style={styles.profileHeaderContent}>
+        <View style={styles.profileInfo}>
+          <View style={styles.avatarContainer}>
+            {profile.profile_pic_url ? (
+              <Image 
+                source={{ uri: profile.profile_pic_url }} 
+                style={styles.avatarImage}
+                resizeMode="cover"
+                onLoad={() => console.log('Profile image loaded successfully')}
+                onError={(error) => console.error('Profile image load error:', error.nativeEvent)}
+              />
+            ) : (
+              <View style={styles.avatarPlaceholder}>
+                <Ionicons name="person" size={40} color={COLORS.primary} />
+              </View>
+            )}
+          </View>
+          <View style={styles.profileTextInfo}>
+            <Text style={styles.profileName}>{profile.name || 'User Name'}</Text>
+            <View style={styles.profileDetailsRow}>
+              <View style={styles.profileDetailItem}>
+                <Ionicons name="calendar-outline" size={16} color={COLORS.gray} />
+                <Text style={styles.profileDetail}>{profile.age ? `${profile.age} years` : 'N/A'}</Text>
+              </View>
+              <View style={styles.profileDetailItem}>
+                <Ionicons name="person-outline" size={16} color={COLORS.gray} />
+                <Text style={styles.profileDetail}>{profile.gender || 'N/A'}</Text>
+              </View>
+            </View>
+          </View>
+        </View>
       </View>
     </View>
   );
@@ -638,6 +759,7 @@ export default function Profile() {
   const [loading, setLoading] = useState(true);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showCustomizeModal, setShowCustomizeModal] = useState(false);
+  const [showSidebar, setShowSidebar] = useState(false);
 
   // Get user ID on mount
   useEffect(() => {
@@ -710,53 +832,58 @@ export default function Profile() {
   }
 
   return (
-    <ScrollView style={styles.container}>
-      <View>
-        <CustomHeader title="Profile" />
-        {/* Switch Profile Button */}
-        <TouchableOpacity style={{ margin: 16, alignSelf: 'flex-end', backgroundColor: COLORS.primary, borderRadius: 8, padding: 8 }} onPress={() => setShowSwitchModal(true)}>
-          <Text style={{ color: COLORS.white, fontWeight: 'bold' }}>Switch Profile</Text>
-        </TouchableOpacity>
-        <ProfileHeader profile={profile} />
-        <View style={{ alignItems: 'center', marginTop: 12 }}>
-          <View style={{ flexDirection: 'row', gap: 12, marginBottom: 8 }}>
-            <TouchableOpacity onPress={() => setShowEditModal(true)} style={{ backgroundColor: COLORS.primary, borderRadius: 8, padding: 8 }}>
-              <Text style={{ color: COLORS.white, fontWeight: 'bold' }}>Edit Profile</Text>
-            </TouchableOpacity>
-            <TouchableOpacity onPress={() => setShowCustomizeModal(true)} style={{ backgroundColor: COLORS.secondary, borderRadius: 8, padding: 8 }}>
-              <Text style={{ color: COLORS.primary, fontWeight: 'bold' }}>Customize</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-        <EditProfileModal visible={showEditModal} onClose={() => setShowEditModal(false)} profile={profile} onSave={async (updated) => {
-          console.log('Profile updated, refreshing data...', updated);
-          // Refresh profiles and update selected profile
-          await refreshProfiles();
-          setProfile(updated);
-          console.log('Profile refresh completed');
-        }} />
-        <CustomizeModal 
-          visible={showCustomizeModal} 
-          onClose={() => setShowCustomizeModal(false)} 
-          profile={profile} 
-          onSave={async (updated) => {
+    <View style={styles.container}>
+      <ScrollView showsVerticalScrollIndicator={false}>
+        <View>
+          <CustomHeader title="Profile" onSettingsPress={() => setShowSidebar(true)} />
+          <ProfileHeader profile={profile} />
+          <EditProfileModal visible={showEditModal} onClose={() => setShowEditModal(false)} profile={profile} onSave={async (updated) => {
+            console.log('Profile updated, refreshing data...', updated);
             // Refresh profiles and update selected profile
             await refreshProfiles();
             setProfile(updated);
-          }} 
-        />
-        {/* ... rest of the sections ... */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Health Record Timeline</Text>
-          <View style={styles.timelineContainer}>
-            {healthRecords.map((item, index) => (
-              <TimelineEvent key={item.id} item={item} isLast={index === healthRecords.length - 1} />
-            ))}
+            console.log('Profile refresh completed');
+          }} />
+          <CustomizeModal 
+            visible={showCustomizeModal} 
+            onClose={() => setShowCustomizeModal(false)} 
+            profile={profile} 
+            onSave={async (updated) => {
+              // Refresh profiles and update selected profile
+              await refreshProfiles();
+              setProfile(updated);
+            }} 
+          />
+          {/* ... rest of the sections ... */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Health Record Timeline</Text>
+            <View style={styles.timelineContainer}>
+              {healthRecords.map((item, index) => (
+                <TimelineEvent key={item.id} item={item} isLast={index === healthRecords.length - 1} />
+              ))}
+            </View>
           </View>
+          <InfoCard title="Past Appointments" data={pastAppointments} icon="calendar-outline" />
+          <InfoCard title="Medication History" data={medications} icon="medkit-outline" />
         </View>
-        <InfoCard title="Past Appointments" data={pastAppointments} icon="calendar-outline" />
-        <InfoCard title="Medication History" data={medications} icon="medkit-outline" />
-      </View>
+      </ScrollView>
+      
+      {/* Profile Sidebar */}
+      <ProfileSidebar
+        visible={showSidebar}
+        onClose={() => setShowSidebar(false)}
+        onEditProfile={() => setShowEditModal(true)}
+        onCustomize={() => setShowCustomizeModal(true)}
+        onSwitchProfile={() => setShowSwitchModal(true)}
+        onLogout={async () => {
+          await supabase.auth.signOut();
+        }}
+        onChangePassword={() => {
+          // TODO: Implement change password functionality
+          alert('Change password functionality coming soon!');
+        }}
+      />
+      
       {/* Switch Profile Modal */}
       <Modal visible={showSwitchModal} animationType="fade" transparent onRequestClose={() => setShowSwitchModal(false)}>
         <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.3)', justifyContent: 'center', alignItems: 'center' }}>
@@ -825,14 +952,14 @@ export default function Profile() {
         await refreshProfiles();
         setProfile(newProfile);
       }} />}
-    </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.lightGray,
+    backgroundColor: COLORS.white,
   },
   centered: {
     justifyContent: 'center',
@@ -843,11 +970,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: COLORS.primary,
     paddingTop: 48,
-    paddingBottom: 16,
-    paddingHorizontal: 16,
-    borderBottomLeftRadius: 20,
-    borderBottomRightRadius: 20,
-    marginBottom: 8,
+    paddingBottom: 20,
+    paddingHorizontal: 20,
+    marginBottom: 0,
+    shadowColor: COLORS.primary,
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 4,
   },
   backButton: {
     width: 32,
@@ -855,6 +984,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 8,
+  },
+  headerSettingsButton: {
+    width: 32,
+    height: 32,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginLeft: 8,
   },
   headerTitle: {
     flex: 1,
@@ -865,12 +1001,21 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
   },
   profileHeader: {
-    backgroundColor: COLORS.white,
-    paddingVertical: 24,
-    paddingHorizontal: 16,
+    backgroundColor: 'rgba(240, 249, 244, 0.95)',
+    borderRadius: 24,
+    marginTop: 24,
+    marginHorizontal: 24,
+    marginBottom: 24,
+    paddingVertical: 32,
+    paddingHorizontal: 24,
+    borderWidth: 1,
+    borderColor: 'rgba(48, 115, 81, 0.1)',
+    shadowColor: COLORS.primary,
+    shadowOpacity: 0.12,
+    shadowRadius: 20,
+    elevation: 4,
     alignItems: 'center',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
+    justifyContent: 'center',
   },
   avatar: {
     width: 90,
@@ -879,22 +1024,56 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.lightGray,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 16,
+    shadowColor: COLORS.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  avatarContainer: {
+    width: 90,
+    height: 90,
+    borderRadius: 45,
+    backgroundColor: COLORS.lightGray,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: COLORS.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 4,
+    overflow: 'hidden',
   },
   avatarImage: {
     width: 90,
     height: 90,
     borderRadius: 45,
   },
+  avatarPlaceholder: {
+    width: 90,
+    height: 90,
+    borderRadius: 45,
+    backgroundColor: COLORS.lightGray,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   profileName: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#111827',
+    color: COLORS.primary,
+    textAlign: 'center',
   },
   profileDetailsRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 8,
+    marginTop: 12,
+    gap: 16,
+  },
+  profileDetailItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
   },
   profileDetail: {
     fontSize: 16,
@@ -950,24 +1129,27 @@ const styles = StyleSheet.create({
   },
   card: {
     backgroundColor: COLORS.white,
-    borderRadius: 12,
-    marginHorizontal: 16,
+    borderRadius: 16,
+    marginHorizontal: 20,
     marginTop: 16,
-    padding: 16,
-    shadowColor: '#000',
-    shadowOpacity: 0.05,
-    shadowRadius: 10,
-    elevation: 2,
+    padding: 20,
+    shadowColor: COLORS.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 12,
+    elevation: 4,
+    borderWidth: 1,
+    borderColor: 'rgba(48, 115, 81, 0.15)',
   },
   cardHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 16,
   },
   cardTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#111827',
+    color: COLORS.primary,
     marginLeft: 8,
   },
   cardItem: {
@@ -984,6 +1166,171 @@ const styles = StyleSheet.create({
   cardItemDate: {
     fontSize: 14,
     color: COLORS.gray,
+  },
+  actionButtonsContainer: {
+    alignItems: 'center',
+    marginTop: 16,
+    marginBottom: 24,
+  },
+  actionButtonsRow: {
+    flexDirection: 'row',
+    gap: 16,
+    marginBottom: 8,
+  },
+  actionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.primary,
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    shadowColor: COLORS.primary,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  actionButtonText: {
+    color: COLORS.white,
+    fontWeight: 'bold',
+    fontSize: 16,
+  },
+  secondaryActionButton: {
+    backgroundColor: COLORS.secondary,
+  },
+  secondaryActionButtonText: {
+    color: COLORS.primary,
+  },
+  switchProfileButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-end',
+    margin: 16,
+    backgroundColor: COLORS.primary,
+    borderRadius: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    shadowColor: COLORS.primary,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  switchProfileButtonText: {
+    color: COLORS.white,
+    fontWeight: 'bold',
+    fontSize: 16,
+  },
+  // Sidebar styles
+  sidebarOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  sidebarBackdrop: {
+    flex: 1,
+  },
+  sidebarContent: {
+    backgroundColor: COLORS.white,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingBottom: 40,
+    maxHeight: '80%',
+    shadowColor: COLORS.primary,
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 20,
+    elevation: 8,
+  },
+  sidebarHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.lightGray,
+  },
+  sidebarTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: COLORS.primary,
+  },
+  sidebarCloseButton: {
+    padding: 4,
+  },
+  sidebarMenu: {
+    padding: 16,
+  },
+  sidebarMenuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 16,
+    paddingHorizontal: 12,
+    borderRadius: 12,
+    marginBottom: 4,
+  },
+  sidebarMenuItemText: {
+    flex: 1,
+    fontSize: 16,
+    fontWeight: '600',
+    color: COLORS.primary,
+    marginLeft: 12,
+  },
+  sidebarMenuItemDanger: {
+    marginTop: 8,
+  },
+  sidebarMenuItemTextDanger: {
+    color: COLORS.error,
+  },
+  sidebarDivider: {
+    height: 1,
+    backgroundColor: COLORS.lightGray,
+    marginVertical: 16,
+  },
+  // Updated ProfileHeader styles
+  profileHeaderContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    width: '100%',
+  },
+  profileInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  profileTextInfo: {
+    marginLeft: 16,
+    flex: 1,
+  },
+  settingsButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: COLORS.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: COLORS.primary,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  floatingSettingsButton: {
+    position: 'absolute',
+    bottom: 24,
+    right: 24,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: COLORS.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: COLORS.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
   }
 });
 

@@ -25,6 +25,7 @@ function CustomHeader({ title }: { title: string }) {
         <Ionicons name="arrow-back" size={24} color={COLORS.white} />
       </TouchableOpacity>
       <Text style={styles.headerTitle}>{title}</Text>
+      <View style={{ width: 32 }} />
     </View>
   );
 }
@@ -1924,11 +1925,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: COLORS.primary,
     paddingTop: 48,
-    paddingBottom: 16,
-    paddingHorizontal: 16,
-    borderBottomLeftRadius: 20,
-    borderBottomRightRadius: 20,
-    marginBottom: 8,
+    paddingBottom: 20,
+    paddingHorizontal: 20,
+    marginBottom: 0,
+    shadowColor: COLORS.primary,
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 4,
   },
   backButton: {
     width: 32,
@@ -1948,8 +1951,7 @@ const styles = StyleSheet.create({
   tabContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
-    marginHorizontal: 16,
-    marginBottom: 16,
+    margin: 16,
     backgroundColor: COLORS.lightGray,
     borderRadius: 12,
     padding: 4,

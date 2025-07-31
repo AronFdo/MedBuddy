@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../../lib/supabase';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useProfile } from '../../lib/ProfileContext';
+import { useRouter } from 'expo-router';
 
 const COLORS = {
   primary: '#307351',
@@ -15,9 +16,14 @@ const COLORS = {
 };
 
 function CustomHeader({ title }: { title: string }) {
+  const router = useRouter();
   return (
     <View style={styles.headerContainer}>
+      <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+        <Ionicons name="arrow-back" size={24} color={COLORS.white} />
+      </TouchableOpacity>
       <Text style={styles.headerTitle}>{title}</Text>
+      <View style={{ width: 32 }} />
     </View>
   );
 }
@@ -470,11 +476,20 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: COLORS.primary,
     paddingTop: 48,
-    paddingBottom: 16,
-    paddingHorizontal: 16,
-    borderBottomLeftRadius: 20,
-    borderBottomRightRadius: 20,
-    marginBottom: 8,
+    paddingBottom: 20,
+    paddingHorizontal: 20,
+    marginBottom: 0,
+    shadowColor: COLORS.primary,
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  backButton: {
+    width: 32,
+    height: 32,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 8,
   },
   headerTitle: {
     flex: 1,

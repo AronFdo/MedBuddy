@@ -629,7 +629,7 @@ export default function HomeDashboard() {
               color={COLORS.primary} 
             />
             <QuickStatsCard 
-              title="Taken Today" 
+              title="Doses Taken" 
               value={todayTaken.toString()} 
               icon="checkmark-circle" 
               color={COLORS.secondary} 
@@ -643,7 +643,7 @@ export default function HomeDashboard() {
               color={COLORS.primary} 
             />
             <QuickStatsCard 
-              title="Missed" 
+              title="Doses Missed" 
               value={missed.length.toString()} 
               icon="close-circle" 
               color={COLORS.error} 
@@ -762,14 +762,13 @@ const styles = StyleSheet.create({
     marginBottom: 24,
     paddingVertical: 32,
     paddingHorizontal: 24,
-    backgroundColor: 'rgba(255, 255, 255, 0.25)',
-    backdropFilter: 'blur(20px)',
+    backgroundColor: 'rgba(240, 249, 244, 0.95)',
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
+    borderColor: 'rgba(48, 115, 81, 0.1)',
     shadowColor: COLORS.primary,
-    shadowOpacity: 0.08,
-    shadowRadius: 16,
-    elevation: 3,
+    shadowOpacity: 0.12,
+    shadowRadius: 20,
+    elevation: 4,
     alignItems: 'center',
     justifyContent: 'center',
   },
