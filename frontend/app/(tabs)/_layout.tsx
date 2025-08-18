@@ -1,12 +1,15 @@
 import { Tabs } from 'expo-router';
 import React from 'react';
-import { Ionicons } from '@expo/vector-icons'; // Import Ionicons directly
+import { Ionicons } from '@expo/vector-icons';
+import { View, Image } from 'react-native';
 
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
+import { useProfile } from '@/lib/ProfileContext';
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
+  const { profile } = useProfile();
 
   return (
     <Tabs
@@ -33,11 +36,11 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="HealthRecord"
+        name="Chat"
         options={{
-          title: 'Health',
+          title: 'Chat',
           tabBarIcon: ({ color, focused }) => (
-            <Ionicons name={focused ? 'document-text' : 'document-text-outline'} color={color} size={28} />
+            <Ionicons name={focused ? 'chatbubbles' : 'chatbubbles-outline'} color={color} size={28} />
           ),
         }}
       />
@@ -55,7 +58,27 @@ export default function TabLayout() {
         options={{
           title: 'Profile',
           tabBarIcon: ({ color, focused }) => (
-            <Ionicons name={focused ? 'person' : 'person-outline'} color={color} size={28} />
+            profile?.profile_pic_url ? (
+              <View style={{
+                width: 28,
+                height: 28,
+                borderRadius: 14,
+                overflow: 'hidden',
+                borderWidth: focused ? 2 : 0,
+                borderColor: color,
+              }}>
+                <Image 
+                  source={{ uri: profile.profile_pic_url }} 
+                  style={{
+                    width: '100%',
+                    height: '100%',
+                  }}
+                  resizeMode="cover"
+                />
+              </View>
+            ) : (
+              <Ionicons name={focused ? 'person' : 'person-outline'} color={color} size={28} />
+            )
           ),
         }}
       />

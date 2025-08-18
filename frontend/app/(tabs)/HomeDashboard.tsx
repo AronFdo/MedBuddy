@@ -93,129 +93,32 @@ function getTimeUntil(time: string) {
   }
 }
 
-function FloatingBotButton({ onPress }: { onPress: () => void }) {
-  return (
-    <TouchableOpacity
-      style={{
-        position: 'absolute',
-        bottom: 32,
-        right: 24,
-        backgroundColor: COLORS.primary,
-        borderRadius: 32,
-        width: 64,
-        height: 64,
-        justifyContent: 'center',
-        alignItems: 'center',
-        shadowColor: COLORS.primary,
-        shadowOpacity: 0.18,
-        shadowRadius: 8,
-        elevation: 6,
-        zIndex: 100,
-      }}
-      onPress={onPress}
-      accessibilityLabel="Open AI Chatbot"
-    >
-      <Ionicons name="chatbubbles-outline" size={32} color={COLORS.white} />
-    </TouchableOpacity>
-  );
+// Helper function to get time since a missed dose
+function getTimeSince(time: string) {
+  const now = new Date();
+  const [hours, minutes] = time.split(':').map(Number);
+  const doseTime = new Date();
+  doseTime.setHours(hours, minutes, 0, 0);
+  
+  // If the dose time is in the future today, it means it's for tomorrow
+  if (doseTime > now) {
+    doseTime.setDate(doseTime.getDate() - 1);
+  }
+  
+  const diff = now.getTime() - doseTime.getTime();
+  const hoursDiff = Math.floor(diff / (1000 * 60 * 60));
+  const minutesDiff = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+  
+  if (hoursDiff > 0) {
+    return `${hoursDiff}h ${minutesDiff}m`;
+  } else {
+    return `${minutesDiff}m`;
+  }
 }
 
-function ChatBotModal({ visible, onClose }: { visible: boolean, onClose: () => void }) {
-  const [messages, setMessages] = useState<any[]>([]); // { sender: 'user'|'bot', message: string }
-  const [input, setInput] = useState('');
-  const [loading, setLoading] = useState(false);
-  const scrollViewRef = React.useRef<ScrollView>(null);
 
-  const sendMessage = async () => {
-    if (!input.trim()) return;
-    const userMsg = { sender: 'user', message: input };
-    setMessages(prev => [...prev, userMsg]);
-    setInput('');
-    setLoading(true);
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        setMessages(prev => [...prev, { sender: 'bot', message: 'You must be logged in to use the AI assistant.' }]);
-        setLoading(false);
-        return;
-      }
-      const res = await fetch('http://172.20.10.3:3001/api/ai-chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ user_id: user.id, message: userMsg.message }),
-      });
-      const json = await res.json();
-      setMessages(prev => [...prev, { sender: 'bot', message: json.response }]);
-    } catch (e) {
-      setMessages(prev => [...prev, { sender: 'bot', message: 'Sorry, something went wrong.' }]);
-    } finally {
-      setLoading(false);
-      setTimeout(() => scrollViewRef.current?.scrollToEnd({ animated: true }), 100);
-    }
-  };
 
-  return (
-    <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
-      <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.18)', justifyContent: 'flex-end' }}>
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-          style={{ width: '100%' }}
-        >
-          <View style={{ backgroundColor: COLORS.white, borderTopLeftRadius: 24, borderTopRightRadius: 24, minHeight: 420, maxHeight: '90%', paddingBottom: 24 }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', padding: 18, borderBottomWidth: 1, borderColor: COLORS.lightGray }}>
-              <Ionicons name="chatbubbles-outline" size={26} color={COLORS.primary} style={{ marginRight: 10 }} />
-              <Text style={{ fontSize: 20, fontWeight: 'bold', color: COLORS.primary, flex: 1 }}>MedBuddy AI</Text>
-              <TouchableOpacity onPress={onClose} style={{ padding: 4 }}>
-                <Ionicons name="close" size={28} color={COLORS.primary} />
-              </TouchableOpacity>
-            </View>
-            <ScrollView
-              ref={scrollViewRef}
-              style={{ flex: 1, paddingHorizontal: 18, marginTop: 8, marginBottom: 8 }}
-              contentContainerStyle={{ paddingBottom: 12 }}
-              onContentSizeChange={() => scrollViewRef.current?.scrollToEnd({ animated: true })}
-            >
-              {messages.map((msg, idx) => (
-                <View key={idx} style={{ flexDirection: 'row', justifyContent: msg.sender === 'user' ? 'flex-end' : 'flex-start', marginBottom: 10 }}>
-                  <View style={{
-                    backgroundColor: msg.sender === 'user' ? COLORS.primary : COLORS.lightGray,
-                    borderRadius: 16,
-                    paddingVertical: 10,
-                    paddingHorizontal: 14,
-                    maxWidth: '80%',
-                  }}>
-                    <Text style={{ color: msg.sender === 'user' ? COLORS.white : COLORS.primary, fontSize: 16 }}>{msg.message}</Text>
-                  </View>
-                </View>
-              ))}
-              {loading && (
-                <View style={{ flexDirection: 'row', justifyContent: 'flex-start', marginBottom: 10 }}>
-                  <View style={{ backgroundColor: COLORS.lightGray, borderRadius: 16, paddingVertical: 10, paddingHorizontal: 14, maxWidth: '80%' }}>
-                    <ActivityIndicator color={COLORS.primary} size="small" />
-                  </View>
-                </View>
-              )}
-            </ScrollView>
-            <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, marginTop: 2 }}>
-              <TextInput
-                style={{ flex: 1, backgroundColor: COLORS.lightGray, borderRadius: 16, paddingVertical: 10, paddingHorizontal: 16, fontSize: 16, marginRight: 8 }}
-                placeholder="Ask MedBuddy anything..."
-                value={input}
-                onChangeText={setInput}
-                editable={!loading}
-                onSubmitEditing={sendMessage}
-                returnKeyType="send"
-              />
-              <TouchableOpacity onPress={sendMessage} disabled={loading || !input.trim()} style={{ opacity: loading || !input.trim() ? 0.5 : 1 }}>
-                <Ionicons name="send" size={28} color={COLORS.primary} />
-              </TouchableOpacity>
-            </View>
-          </View>
-        </KeyboardAvoidingView>
-      </View>
-    </Modal>
-  );
-}
+
 
 function NotificationCard({ 
   type, 
@@ -284,7 +187,6 @@ export default function HomeDashboard() {
   const [logs, setLogs] = useState<any[]>([]);
   const [healthRecords, setHealthRecords] = useState<any[]>([]);
   const [recentActivity, setRecentActivity] = useState<any[]>([]);
-  const [showBot, setShowBot] = useState(false);
 
   // Fetch data when profile changes
   useEffect(() => {
@@ -301,10 +203,13 @@ export default function HomeDashboard() {
 
       setLoading(true);
       try {
-        // Fetch medications for this profile
+        // Fetch medications for this profile with prescription data
         const { data: meds, error: medsError } = await supabase
           .from('medications')
-          .select('*')
+          .select(`
+            *,
+            prescriptions:prescription_id (id, doctor_name, issued_date, notes)
+          `)
           .eq('profile_id', profile.id);
         if (!medsError && meds) {
           console.log('Fetched medications:', meds);
@@ -387,11 +292,10 @@ export default function HomeDashboard() {
 
   // Generate recent activity from the last 2 days
   const generateRecentActivity = () => {
-    const twoDaysAgo = new Date();
-    twoDaysAgo.setDate(twoDaysAgo.getDate() - 2);
-    const twoDaysAgoStr = twoDaysAgo.toISOString().slice(0, 10);
+    const now = new Date();
+    const twoDaysAgo = new Date(now.getTime() - (2 * 24 * 60 * 60 * 1000)); // 2 days ago in milliseconds
     
-    console.log('Generating recent activity for last 2 days from:', twoDaysAgoStr);
+    console.log('Generating recent activity for last 2 days from:', twoDaysAgo.toISOString());
     console.log('Total medications:', medications.length);
     console.log('Total appointments:', appointments.length);
     console.log('Total health records:', healthRecords.length);
@@ -401,7 +305,8 @@ export default function HomeDashboard() {
 
     // Add recent medication logs
     logs.forEach(log => {
-      if (log.log_date >= twoDaysAgoStr) {
+      const logDate = new Date(`${log.log_date}T00:00:00`);
+      if (logDate >= twoDaysAgo) {
         const medication = medications.find(m => m.medication_id === log.medication_id);
         activity.push({
           id: `log_${log.id}`,
@@ -419,35 +324,43 @@ export default function HomeDashboard() {
 
     // Add recently added/updated medications
     medications.forEach(med => {
-      console.log('Checking medication:', med.name, 'created_at:', med.created_at, 'updated_at:', med.updated_at, 'prescribed_date:', med.prescribed_date);
+      console.log('Checking medication:', med.name, 'created_at:', med.created_at, 'updated_at:', med.updated_at, 'prescription:', med.prescriptions);
       
-      // Try different possible date fields
-      const createdDate = new Date(med.created_at || med.prescribed_date || med.inserted_at || new Date());
-      const updatedDate = new Date(med.updated_at || med.modified_at || med.created_at || med.prescribed_date || new Date());
-      const isRecent = createdDate >= twoDaysAgo || updatedDate >= twoDaysAgo;
+      // Use prescription issued_date as primary, fallback to medication created_at
+      const prescriptionDate = med.prescriptions?.issued_date ? new Date(med.prescriptions.issued_date) : null;
+      const createdDate = med.created_at ? new Date(med.created_at) : new Date();
+      const updatedDate = med.updated_at ? new Date(med.updated_at) : createdDate;
       
-      console.log('Medication dates - created:', createdDate, 'updated:', updatedDate, 'twoDaysAgo:', twoDaysAgo, 'isRecent:', isRecent);
+      // Check if medication was created, updated, or prescription was issued in the last 2 days
+      const isRecent = (prescriptionDate && prescriptionDate >= twoDaysAgo) || 
+                      createdDate >= twoDaysAgo || 
+                      updatedDate >= twoDaysAgo;
+      
+      console.log('Medication dates - prescription:', prescriptionDate, 'created:', createdDate, 'updated:', updatedDate, 'twoDaysAgo:', twoDaysAgo, 'isRecent:', isRecent);
       
       if (isRecent) {
         console.log('Adding medication to activity:', med.name);
+        const displayDate = prescriptionDate || createdDate;
+        const displayText = prescriptionDate ? 'Prescribed' : 'Added';
+        
         activity.push({
           id: `med_${med.medication_id || med.id}`,
           type: 'medication',
-          title: `Added ${med.name}`,
-          subtitle: `${med.dosage} • ${med.frequency}x/day`,
-          time: createdDate.toLocaleDateString(),
+          title: `${displayText} ${med.name}`,
+          subtitle: `${med.dosage} • ${med.frequency}x/day${med.prescriptions?.doctor_name ? ` • Dr. ${med.prescriptions.doctor_name}` : ''}`,
+          time: displayDate.toLocaleDateString(),
           icon: 'medkit',
           color: COLORS.primary,
-          timestamp: createdDate.getTime(),
-          date: createdDate.toISOString().slice(0, 10)
+          timestamp: displayDate.getTime(),
+          date: displayDate.toISOString().slice(0, 10)
         });
       }
     });
 
     // Add recently added/updated appointments
     appointments.forEach(appt => {
-      const createdDate = new Date(appt.created_at);
-      const updatedDate = new Date(appt.updated_at || appt.created_at);
+      const createdDate = appt.created_at ? new Date(appt.created_at) : new Date();
+      const updatedDate = appt.updated_at ? new Date(appt.updated_at) : createdDate;
       const isRecent = createdDate >= twoDaysAgo || updatedDate >= twoDaysAgo;
       
       if (isRecent) {
@@ -467,8 +380,8 @@ export default function HomeDashboard() {
 
     // Add recently added/updated health records
     healthRecords.forEach(record => {
-      const createdDate = new Date(record.created_at);
-      const updatedDate = new Date(record.updated_at || record.created_at);
+      const createdDate = record.created_at ? new Date(record.created_at) : new Date();
+      const updatedDate = record.updated_at ? new Date(record.updated_at) : createdDate;
       const isRecent = createdDate >= twoDaysAgo || updatedDate >= twoDaysAgo;
       
       if (isRecent) {
@@ -493,24 +406,10 @@ export default function HomeDashboard() {
     
     console.log('Generated activity items:', sortedActivity.length, 'items:', sortedActivity);
     
-    // If no recent activity found, show all medications as a fallback
-    if (sortedActivity.length === 0 && medications.length > 0) {
-      console.log('No recent activity found, showing all medications as fallback');
-      medications.slice(0, 3).forEach(med => {
-        const createdDate = new Date(med.created_at || med.prescribed_date || med.inserted_at || new Date());
-        activity.push({
-          id: `med_fallback_${med.medication_id || med.id}`,
-          type: 'medication',
-          title: `Added ${med.name}`,
-          subtitle: `${med.dosage} • ${med.frequency}x/day`,
-          time: createdDate.toLocaleDateString(),
-          icon: 'medkit',
-          color: COLORS.primary,
-          timestamp: createdDate.getTime(),
-          date: createdDate.toISOString().slice(0, 10)
-        });
-      });
-      return activity.slice(0, 3);
+    // If no recent activity found, show a message instead of old medications
+    if (sortedActivity.length === 0) {
+      console.log('No recent activity found in the last 2 days');
+      return [];
     }
     
     return sortedActivity;
@@ -686,7 +585,7 @@ export default function HomeDashboard() {
                   type="medication"
                   title={item.name}
                   subtitle="Missed medication dose"
-                  time={`${formatTime(item.time)} (${getTimeUntil(item.time)} ago)`}
+                  time={`${formatTime(item.time)} (${getTimeSince(item.time)} ago)`}
                   icon="close-circle"
                   color={COLORS.error}
                 />
@@ -743,12 +642,9 @@ export default function HomeDashboard() {
           </View>
         </View>
         
-        {/* Add bottom padding for floating button */}
-        <View style={{ height: 100 }} />
+        {/* Add bottom padding */}
+        <View style={{ height: 20 }} />
       </ScrollView>
-      
-      <FloatingBotButton onPress={() => setShowBot(true)} />
-      <ChatBotModal visible={showBot} onClose={() => setShowBot(false)} />
     </View>
   );
 }

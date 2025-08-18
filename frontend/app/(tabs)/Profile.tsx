@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, ActivityIndicator, TouchableOpacity, Modal, FlatList, TextInput, Platform, Image } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, ActivityIndicator, TouchableOpacity, Modal, FlatList, TextInput, Platform, Image, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../../lib/supabase';
 import { useRouter } from 'expo-router';
@@ -44,7 +44,7 @@ function FloatingSettingsButton({ onPress }: { onPress: () => void }) {
   );
 }
 
-function ProfileSidebar({ visible, onClose, onEditProfile, onCustomize, onSwitchProfile, onLogout, onChangePassword }: { 
+function ProfileSidebar({ visible, onClose, onEditProfile, onCustomize, onSwitchProfile, onLogout, onChangePassword, onDeleteProfile, profile }: { 
   visible: boolean; 
   onClose: () => void; 
   onEditProfile: () => void; 
@@ -52,6 +52,8 @@ function ProfileSidebar({ visible, onClose, onEditProfile, onCustomize, onSwitch
   onSwitchProfile: () => void; 
   onLogout: () => void; 
   onChangePassword: () => void; 
+  onDeleteProfile: () => void; 
+  profile: any; 
 }) {
   return (
     <Modal
@@ -107,17 +109,31 @@ function ProfileSidebar({ visible, onClose, onEditProfile, onCustomize, onSwitch
               <Ionicons name="chevron-forward" size={20} color={COLORS.gray} />
             </TouchableOpacity>
             
-            <TouchableOpacity 
-              style={styles.sidebarMenuItem} 
-              onPress={() => {
-                onChangePassword();
-                onClose();
-              }}
-            >
-              <Ionicons name="lock-closed-outline" size={24} color={COLORS.primary} />
-              <Text style={styles.sidebarMenuItemText}>Change Password</Text>
-              <Ionicons name="chevron-forward" size={20} color={COLORS.gray} />
-            </TouchableOpacity>
+            {profile?.profile_type === 'myself' ? (
+              <TouchableOpacity 
+                style={styles.sidebarMenuItem} 
+                onPress={() => {
+                  onChangePassword();
+                  onClose();
+                }}
+              >
+                <Ionicons name="lock-closed-outline" size={24} color={COLORS.primary} />
+                <Text style={styles.sidebarMenuItemText}>Change Password</Text>
+                <Ionicons name="chevron-forward" size={20} color={COLORS.gray} />
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity 
+                style={[styles.sidebarMenuItem, styles.sidebarMenuItemDanger]} 
+                onPress={() => {
+                  onDeleteProfile();
+                  onClose();
+                }}
+              >
+                <Ionicons name="trash-outline" size={24} color={COLORS.error} />
+                <Text style={[styles.sidebarMenuItemText, styles.sidebarMenuItemTextDanger]}>Delete Profile</Text>
+                <Ionicons name="chevron-forward" size={20} color={COLORS.error} />
+              </TouchableOpacity>
+            )}
             
             <View style={styles.sidebarDivider} />
             
@@ -882,6 +898,53 @@ export default function Profile() {
           // TODO: Implement change password functionality
           alert('Change password functionality coming soon!');
         }}
+        onDeleteProfile={async () => {
+          if (!profile) return;
+          
+          // Show confirmation dialog
+          const confirmed = await new Promise<boolean>((resolve) => {
+            Alert.alert(
+              'Delete Profile',
+              `Are you sure you want to delete the profile "${profile.name}"? This action cannot be undone.`,
+              [
+                { text: 'Cancel', style: 'cancel', onPress: () => resolve(false) },
+                { text: 'Delete', style: 'destructive', onPress: () => resolve(true) }
+              ]
+            );
+          });
+          
+          if (confirmed) {
+            try {
+              // Delete the profile from the database
+              const { error } = await supabase
+                .from('profiles')
+                .delete()
+                .eq('id', profile.id);
+              
+              if (error) {
+                Alert.alert('Error', `Failed to delete profile: ${error.message}`);
+              } else {
+                // Refresh profiles and select the first available profile
+                await refreshProfiles();
+                // After refresh, check if there are any profiles left
+                if (profiles.length > 1) {
+                  // There are other profiles, select the first one
+                  const remainingProfiles = profiles.filter(p => p.id !== profile.id);
+                  if (remainingProfiles.length > 0) {
+                    setProfile(remainingProfiles[0]);
+                  }
+                } else {
+                  // No profiles left, user will need to create a new one
+                  setProfile(null);
+                }
+                Alert.alert('Success', 'Profile deleted successfully');
+              }
+            } catch (error) {
+              Alert.alert('Error', 'Failed to delete profile');
+            }
+          }
+        }}
+        profile={profile}
       />
       
       {/* Switch Profile Modal */}

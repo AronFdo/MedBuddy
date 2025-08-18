@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, FlatList, ActivityIndicator, Modal, Platform, TextInput, Image, ScrollView, Alert } from 'react-native';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
@@ -7,6 +6,7 @@ import { supabase } from '../../lib/supabase';
 import * as ImagePicker from 'expo-image-picker';
 import { Svg, Circle } from 'react-native-svg';
 import { useProfile } from '../../lib/ProfileContext';
+import DateTimePicker from '@react-native-community/datetimepicker';
 
 const COLORS = {
   primary: '#307351',
@@ -45,21 +45,235 @@ function MultiStepPrescriptionModal({ onSuccess, profileId, accessToken, mealTim
     frequency: '',
     days_remaining: ''
   });
-  const [selectedMealTimes, setSelectedMealTimes] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
-
-  // Reset selected meal times when frequency changes
+  const [scanning, setScanning] = useState(false);
+  const [scanningStep, setScanningStep] = useState<'medication' | null>(null);
+  const [formPopulated, setFormPopulated] = useState(false);
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [selectedDate, setSelectedDate] = useState(new Date());
+  
+  // Initialize prescription with current date
   useEffect(() => {
-    const frequency = parseInt(currentMedication.frequency);
-    if (frequency === 1 || frequency === 2) {
-      // Pre-select first meal times based on frequency
-      const mealTimeValues = Object.values(mealTimes);
-      setSelectedMealTimes(mealTimeValues.slice(0, frequency));
-    } else {
-      setSelectedMealTimes([]);
+    const today = new Date().toISOString().split('T')[0];
+    setPrescription(prev => ({ ...prev, issued_date: today }));
+    setSelectedDate(new Date());
+  }, []);
+
+
+
+  // OCR Functions
+  const scanMedication = async () => {
+    try {
+      setScanning(true);
+      setScanningStep('medication');
+      setError(null);
+
+      // Request camera permissions
+      const { status } = await ImagePicker.requestCameraPermissionsAsync();
+      if (status !== 'granted') {
+        setError('Camera permission is required to scan medication packages.');
+        setScanning(false);
+        setScanningStep(null);
+        return;
+      }
+
+      // Show action sheet for image source selection
+      Alert.alert(
+        'Select Image Source',
+        'Choose how you want to get the medication package image:',
+        [
+          {
+            text: 'Take Photo',
+            onPress: () => launchCamera(),
+          },
+          {
+            text: 'Choose from Gallery',
+            onPress: () => launchImageLibrary(),
+          },
+          {
+            text: 'Cancel',
+            style: 'cancel',
+            onPress: () => {
+              setScanning(false);
+              setScanningStep(null);
+            },
+          },
+        ]
+      );
+    } catch (error: any) {
+      console.error('Scan error:', error);
+      setError(error.message || 'Failed to scan medication package');
+      setScanning(false);
+      setScanningStep(null);
     }
-  }, [currentMedication.frequency, mealTimes]);
+  };
+
+  const launchCamera = async () => {
+    try {
+      const result = await ImagePicker.launchCameraAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [4, 3],
+        quality: 0.6, // Reduced quality for better compression
+        base64: true, // Enable base64 encoding
+      });
+
+      if (!result.canceled && result.assets && result.assets[0]) {
+        await processImage(result.assets[0]);
+      } else {
+        setScanning(false);
+        setScanningStep(null);
+      }
+    } catch (error: any) {
+      console.error('Camera error:', error);
+      setError(error.message || 'Failed to take photo');
+      setScanning(false);
+      setScanningStep(null);
+    }
+  };
+
+  const launchImageLibrary = async () => {
+    try {
+      // Request media library permissions
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        setError('Media library permission is required to select images.');
+        setScanning(false);
+        setScanningStep(null);
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [4, 3],
+        quality: 0.6, // Reduced quality for better compression
+        base64: true, // Enable base64 encoding
+      });
+
+      if (!result.canceled && result.assets && result.assets[0]) {
+        await processImage(result.assets[0]);
+      } else {
+        setScanning(false);
+        setScanningStep(null);
+      }
+    } catch (error: any) {
+      console.error('Gallery error:', error);
+      setError(error.message || 'Failed to select image from gallery');
+      setScanning(false);
+      setScanningStep(null);
+    }
+  };
+
+  const processImage = async (asset: any) => {
+    try {
+      const imageUri = asset.uri;
+      const base64Data = asset.base64;
+      
+      if (!base64Data) {
+        throw new Error('Failed to encode image to base64');
+      }
+      
+      // Check image size and compress if needed
+      const imageSizeInMB = (base64Data.length * 0.75) / (1024 * 1024); // Approximate size in MB
+      console.log('Image size:', imageSizeInMB.toFixed(2), 'MB');
+      
+      if (imageSizeInMB > 10) {
+        Alert.alert(
+          'Large Image',
+          'The image is quite large. This may take longer to process. Consider taking a new photo with better lighting.',
+          [{ text: 'Continue', onPress: () => {} }]
+        );
+      }
+      
+      // Get current user
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        throw new Error('User not authenticated');
+      }
+
+      // Call OCR endpoint for single medication
+      const ocrResponse = await fetch(`http://172.20.10.3:3001/api/ocr/medication`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          image: `data:image/jpeg;base64,${base64Data}`,
+          user_id: user.id,
+          profile_id: profileId
+        }),
+      });
+
+      // Check if response is ok and contains JSON
+      if (!ocrResponse.ok) {
+        let errorMessage = 'OCR processing failed';
+        try {
+          const errorData = await ocrResponse.json();
+          errorMessage = errorData.error || errorMessage;
+        } catch (parseError) {
+          // If JSON parsing fails, try to get text response
+          try {
+            const errorText = await ocrResponse.text();
+            errorMessage = `Server error: ${ocrResponse.status} - ${errorText}`;
+          } catch (textError) {
+            errorMessage = `Server error: ${ocrResponse.status} - ${ocrResponse.statusText}`;
+          }
+        }
+        throw new Error(errorMessage);
+      }
+
+      // Try to parse the response as JSON
+      let ocrData;
+      try {
+        ocrData = await ocrResponse.json();
+      } catch (parseError) {
+        console.error('Failed to parse OCR response as JSON:', parseError);
+        const responseText = await ocrResponse.text();
+        console.error('Response text:', responseText);
+        throw new Error('Invalid response from OCR service. Please try again.');
+      }
+      
+      if (ocrData.success) {
+        // Update current medication form with scanned data
+        setCurrentMedication({
+          name: ocrData.medication.name || '',
+          dosage: ocrData.medication.dosage || '',
+          frequency: ocrData.medication.frequency || '',
+          days_remaining: ocrData.medication.days_remaining || ''
+        });
+        
+        // Mark form as populated with OCR data
+        setFormPopulated(true);
+        
+        Alert.alert(
+          'Medication Details Extracted', 
+          ocrData.message || 'Please review the details below and make any necessary adjustments before adding the medication.',
+          [{ text: 'OK' }]
+        );
+      } else {
+        throw new Error(ocrData.error || 'Failed to extract medication details');
+      }
+      
+    } catch (error: any) {
+      console.error('OCR error:', error);
+      setError(error.message || 'Failed to process medication package image. Please try again.');
+    } finally {
+      setScanning(false);
+      setScanningStep(null);
+    }
+  };
+
+  // Helper function to generate preview times
+  const generatePreviewTimes = (frequency: number) => {
+    const defaultTimes: string[] = [];
+    for (let i = 0; i < frequency; i++) {
+      const hour: number = 8 + (i * 4);
+      defaultTimes.push(`${hour.toString().padStart(2, '0')}:00`);
+    }
+    return defaultTimes;
+  };
 
   const handlePrescriptionSave = () => {
     if (!prescription.doctor_name.trim()) {
@@ -76,44 +290,44 @@ function MultiStepPrescriptionModal({ onSuccess, profileId, accessToken, mealTim
       return;
     }
     
-    const frequency = parseInt(currentMedication.frequency);
-    if ((frequency === 1 || frequency === 2) && selectedMealTimes.length !== frequency) {
-      setError(`Please select exactly ${frequency} meal time${frequency > 1 ? 's' : ''} for reminders.`);
-      return;
-    }
-    
     setError(null);
     
-    // Generate preview reminder times based on selected meal times or default times
+    // Generate preview reminder times based on profile meal times
     const generatePreviewTimes = (frequency: number) => {
-      if (frequency === 1 || frequency === 2) {
-        // Use selected meal times
-        return selectedMealTimes.map(time => {
-          // Convert to HH:MM format for display
+      const mealTimeValues = Object.values(mealTimes);
+      const previewTimes: string[] = [];
+      
+      // Use first meal times from profile, up to the frequency limit
+      for (let i = 0; i < frequency && i < mealTimeValues.length; i++) {
+        const time = mealTimeValues[i] as string;
+        if (time.includes(':')) {
           const [hours, minutes] = time.split(':');
-          return `${hours.padStart(2, '0')}:${minutes.padStart(2, '0')}`;
-        });
-      } else {
-        // Use default times for higher frequencies
-        const defaultTimes: string[] = [];
-        for (let i = 0; i < frequency; i++) {
-          const hour: number = 8 + (i * 4); // 8am, 12pm, 4pm, etc.
-          defaultTimes.push(`${hour.toString().padStart(2, '0')}:00`);
+          previewTimes.push(`${hours.padStart(2, '0')}:${minutes.padStart(2, '0')}`);
+        } else {
+          // Fallback to default time if meal time format is unexpected
+          const hour: number = 8 + (i * 4);
+          previewTimes.push(`${hour.toString().padStart(2, '0')}:00`);
         }
-        return defaultTimes;
       }
+      
+      // If we need more times than meal times available, add default times
+      while (previewTimes.length < frequency) {
+        const hour: number = 8 + (previewTimes.length * 4);
+        previewTimes.push(`${hour.toString().padStart(2, '0')}:00`);
+      }
+      
+      return previewTimes;
     };
     
     const newMedication = {
       ...currentMedication,
       days_remaining: parseInt(currentMedication.days_remaining),
       id: Date.now(), // temporary ID for list management
-      previewReminderTimes: generatePreviewTimes(frequency),
-      selectedMealTimes: frequency === 1 || frequency === 2 ? selectedMealTimes : []
+      previewReminderTimes: generatePreviewTimes(parseInt(currentMedication.frequency))
     };
     setMedications([...medications, newMedication]);
     setCurrentMedication({ name: '', dosage: '', frequency: '', days_remaining: '' });
-    setSelectedMealTimes([]);
+    setFormPopulated(false);
   };
 
   const handleRemoveMedication = (index: number) => {
@@ -175,39 +389,13 @@ function MultiStepPrescriptionModal({ onSuccess, profileId, accessToken, mealTim
         return;
       }
 
-      // Generate reminder times based on selected meal times or default times
+      // Generate reminder times based on profile meal times
       const generateReminderTimes = (medication: any, mealTimes: any) => {
         const frequency = parseInt(medication.frequency);
-        
-        // If frequency is 1 or 2 and we have selected meal times, use them
-        if ((frequency === 1 || frequency === 2) && medication.selectedMealTimes && medication.selectedMealTimes.length > 0) {
-          return medication.selectedMealTimes.map((time: string) => {
-            // Ensure time format is HH:MM:SS
-            if (time.includes(':')) {
-              const [hours, minutes] = time.split(':');
-              return `${hours.padStart(2, '0')}:${minutes.padStart(2, '0')}:00`;
-            } else {
-              // Fallback to default time
-              return `${time.padStart(2, '0')}:00:00`;
-            }
-          });
-        }
-        
-        // For higher frequencies or when no meal times selected, use default logic
-        if (!mealTimes || Object.keys(mealTimes).length === 0) {
-          // If no meal times, create default times based on frequency
-          const defaultTimes: string[] = [];
-          for (let i = 0; i < frequency; i++) {
-            const hour: number = 8 + (i * 4); // 8am, 12pm, 4pm, etc.
-            defaultTimes.push(`${hour.toString().padStart(2, '0')}:00:00`);
-          }
-          return defaultTimes;
-        }
-
-        // Use meal times if available
         const mealTimeValues = Object.values(mealTimes);
         const reminderTimes: string[] = [];
         
+        // Use first meal times from profile, up to the frequency limit
         for (let i = 0; i < frequency && i < mealTimeValues.length; i++) {
           const time = mealTimeValues[i] as string;
           // Ensure time format is HH:MM:SS
@@ -215,18 +403,18 @@ function MultiStepPrescriptionModal({ onSuccess, profileId, accessToken, mealTim
             const [hours, minutes] = time.split(':');
             reminderTimes.push(`${hours.padStart(2, '0')}:${minutes.padStart(2, '0')}:00`);
           } else {
-            // Fallback to default time
+            // Fallback to default time if meal time format is unexpected
             const hour: number = 8 + (i * 4);
             reminderTimes.push(`${hour.toString().padStart(2, '0')}:00:00`);
           }
         }
-
+        
         // If we need more times than meal times available, add default times
         while (reminderTimes.length < frequency) {
           const hour: number = 8 + (reminderTimes.length * 4);
           reminderTimes.push(`${hour.toString().padStart(2, '0')}:00:00`);
         }
-
+        
         return reminderTimes;
       };
 
@@ -273,6 +461,7 @@ function MultiStepPrescriptionModal({ onSuccess, profileId, accessToken, mealTim
   const renderStep1 = () => (
     <View style={modalStyles.container}>
       <Text style={modalStyles.header}>Prescription Details</Text>
+      
       <Text style={modalStyles.label}>Doctor Name *</Text>
       <TextInput
         style={modalStyles.input}
@@ -280,13 +469,35 @@ function MultiStepPrescriptionModal({ onSuccess, profileId, accessToken, mealTim
         value={prescription.doctor_name}
         onChangeText={(text) => setPrescription({...prescription, doctor_name: text})}
       />
+      
       <Text style={modalStyles.label}>Issued Date</Text>
-      <TextInput
+      <TouchableOpacity 
         style={modalStyles.input}
-        placeholder="YYYY-MM-DD (optional)"
-        value={prescription.issued_date}
-        onChangeText={(text) => setPrescription({...prescription, issued_date: text})}
-      />
+        onPress={() => setShowDatePicker(true)}
+      >
+        <Text style={{ 
+          color: prescription.issued_date ? COLORS.primary : COLORS.gray,
+          fontSize: 16
+        }}>
+          {prescription.issued_date ? new Date(prescription.issued_date).toLocaleDateString() : 'Select date (optional)'}
+        </Text>
+      </TouchableOpacity>
+      
+      {showDatePicker && (
+        <DateTimePicker
+          value={selectedDate}
+          mode="date"
+          display="default"
+          onChange={(event, date) => {
+            setShowDatePicker(false);
+            if (date) {
+              setSelectedDate(date);
+              const formattedDate = date.toISOString().split('T')[0];
+              setPrescription({...prescription, issued_date: formattedDate});
+            }
+          }}
+        />
+      )}
       <Text style={modalStyles.label}>Notes</Text>
       <TextInput
         style={[modalStyles.input, { height: 80, textAlignVertical: 'top' }]}
@@ -299,150 +510,131 @@ function MultiStepPrescriptionModal({ onSuccess, profileId, accessToken, mealTim
       <TouchableOpacity style={modalStyles.saveButton} onPress={handlePrescriptionSave}>
         <Text style={modalStyles.saveButtonText}>Next: Add Medications</Text>
       </TouchableOpacity>
+      
+      {/* Appointment Picker Modal */}
+
     </View>
   );
 
   const renderStep2 = () => (
     <View style={modalStyles.container}>
-      <Text style={modalStyles.header}>Add Medications</Text>
-      <Text style={modalStyles.subHeader}>Prescription: {prescription.doctor_name}</Text>
-      
-      {/* Current medication form */}
-      <Text style={modalStyles.label}>Medication Name *</Text>
-      <TextInput
-        style={modalStyles.input}
-        placeholder="e.g. Paracetamol"
-        value={currentMedication.name}
-        onChangeText={(text) => setCurrentMedication({...currentMedication, name: text})}
-      />
-      <Text style={modalStyles.label}>Dosage *</Text>
-      <TextInput
-        style={modalStyles.input}
-        placeholder="e.g. 500mg"
-        value={currentMedication.dosage}
-        onChangeText={(text) => setCurrentMedication({...currentMedication, dosage: text})}
-      />
-      
-      {/* Frequency and Days on one line */}
-      <View style={modalStyles.rowInput}>
-        <View style={modalStyles.halfInput}>
-          <Text style={modalStyles.label}>Frequency *</Text>
-          <TextInput
-            style={modalStyles.input}
-            placeholder="2"
-            value={currentMedication.frequency}
-            onChangeText={(text) => setCurrentMedication({...currentMedication, frequency: text})}
-            keyboardType="numeric"
-            maxLength={1}
+      <ScrollView 
+        style={{ flex: 1 }} 
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: 20 }}
+      >
+        <Text style={modalStyles.header}>Add Medications</Text>
+        <Text style={modalStyles.subHeader}>Prescription: {prescription.doctor_name}</Text>
+        
+        {/* OCR Scan Button for Individual Medication */}
+        <TouchableOpacity 
+          style={[modalStyles.ocrButton, scanning && scanningStep === 'medication' && modalStyles.ocrButtonScanning]} 
+          onPress={scanMedication}
+          disabled={scanning}
+        >
+          <Ionicons 
+            name={scanning && scanningStep === 'medication' ? 'images' : 'images-outline'} 
+            size={24} 
+            color={COLORS.white} 
           />
-        </View>
-        <View style={modalStyles.halfInput}>
-          <Text style={modalStyles.label}>Days *</Text>
-          <TextInput
-            style={modalStyles.input}
-            placeholder="5"
-            value={currentMedication.days_remaining}
-            onChangeText={(text) => setCurrentMedication({...currentMedication, days_remaining: text})}
-            keyboardType="numeric"
-            maxLength={3}
-          />
-        </View>
-      </View>
-      
-      {/* Meal Time Selection for Frequency 1 or 2 */}
-      {(parseInt(currentMedication.frequency) === 1 || parseInt(currentMedication.frequency) === 2) && Object.keys(mealTimes).length > 0 && (
-        <View style={modalStyles.mealTimeSelection}>
-          <Text style={modalStyles.label}>
-            Select {currentMedication.frequency} meal time{parseInt(currentMedication.frequency) > 1 ? 's' : ''} for reminders *
+          <Text style={modalStyles.ocrButtonText}>
+            {scanning && scanningStep === 'medication' ? 'Extracting...' : 'Extract from Package'}
           </Text>
-          <View style={modalStyles.mealTimeGrid}>
-            {Object.entries(mealTimes).map(([mealName, mealTime]) => {
-              const isSelected = selectedMealTimes.includes(mealTime);
-              const canSelect = selectedMealTimes.length < parseInt(currentMedication.frequency) || isSelected;
-              
-              return (
-                <TouchableOpacity
-                  key={mealName}
-                  style={[
-                    modalStyles.mealTimeOption,
-                    isSelected && modalStyles.mealTimeOptionSelected,
-                    !canSelect && modalStyles.mealTimeOptionDisabled
-                  ]}
-                  onPress={() => {
-                    if (canSelect) {
-                      if (isSelected) {
-                        setSelectedMealTimes(selectedMealTimes.filter(time => time !== mealTime));
-                      } else {
-                        setSelectedMealTimes([...selectedMealTimes, mealTime]);
-                      }
-                    }
-                  }}
-                  disabled={!canSelect}
-                >
-                  <Text style={[
-                    modalStyles.mealTimeText,
-                    isSelected && modalStyles.mealTimeTextSelected,
-                    !canSelect && modalStyles.mealTimeTextDisabled
-                  ]}>
-                    {mealName}
-                  </Text>
-                  <Text style={[
-                    modalStyles.mealTimeValue,
-                    isSelected && modalStyles.mealTimeTextSelected,
-                    !canSelect && modalStyles.mealTimeTextDisabled
-                  ]}>
-                    {mealTime}
-                  </Text>
-                  {isSelected && (
-                    <Ionicons name="checkmark-circle" size={20} color={COLORS.white} style={modalStyles.mealTimeCheck} />
-                  )}
-                </TouchableOpacity>
-              );
-            })}
-          </View>
-          {selectedMealTimes.length > 0 && (
-            <Text style={modalStyles.selectedMealTimesText}>
-              Selected: {selectedMealTimes.map(time => {
-                const [hours, minutes] = time.split(':');
-                return `${hours.padStart(2, '0')}:${minutes.padStart(2, '0')}`;
-              }).join(', ')}
-            </Text>
+          {scanning && scanningStep === 'medication' && (
+            <ActivityIndicator color={COLORS.white} size="small" style={{ marginLeft: 8 }} />
           )}
+        </TouchableOpacity>
+        
+        <View style={modalStyles.divider} />
+        
+        {/* OCR Data Indicator */}
+        {formPopulated && (
+          <View style={modalStyles.ocrIndicator}>
+            <Ionicons name="checkmark-circle" size={20} color={COLORS.primary} />
+            <Text style={modalStyles.ocrIndicatorText}>
+              Form populated with extracted data - please review and adjust if needed
+            </Text>
+          </View>
+        )}
+        
+        {/* Current medication form */}
+        <Text style={modalStyles.label}>Medication Name *</Text>
+        <TextInput
+          style={modalStyles.input}
+          placeholder="e.g. Paracetamol"
+          value={currentMedication.name}
+          onChangeText={(text) => setCurrentMedication({...currentMedication, name: text})}
+        />
+        <Text style={modalStyles.label}>Dosage *</Text>
+        <TextInput
+          style={modalStyles.input}
+          placeholder="e.g. 500mg"
+          value={currentMedication.dosage}
+          onChangeText={(text) => setCurrentMedication({...currentMedication, dosage: text})}
+        />
+        
+        {/* Frequency and Days on one line */}
+        <View style={modalStyles.rowInput}>
+          <View style={modalStyles.halfInput}>
+            <Text style={modalStyles.label}>Frequency *</Text>
+            <TextInput
+              style={modalStyles.input}
+              placeholder="2"
+              value={currentMedication.frequency}
+              onChangeText={(text) => setCurrentMedication({...currentMedication, frequency: text})}
+              keyboardType="numeric"
+              maxLength={1}
+            />
+          </View>
+          <View style={modalStyles.halfInput}>
+            <Text style={modalStyles.label}>Days *</Text>
+            <TextInput
+              style={modalStyles.input}
+              placeholder="5"
+              value={currentMedication.days_remaining}
+              onChangeText={(text) => setCurrentMedication({...currentMedication, days_remaining: text})}
+              keyboardType="numeric"
+              maxLength={3}
+            />
+          </View>
         </View>
-      )}
-      
-      <TouchableOpacity style={[modalStyles.saveButton, { backgroundColor: COLORS.secondary, marginBottom: 12 }]} onPress={handleAddMedication}>
-        <Text style={[modalStyles.saveButtonText, { color: COLORS.primary }]}>Add This Medication</Text>
-      </TouchableOpacity>
+        
 
-      {/* List of added medications */}
-      {medications.length > 0 && (
-        <View style={modalStyles.medicationsList}>
-          <Text style={modalStyles.label}>Added Medications ({medications.length})</Text>
-          {medications.map((med, index) => (
-            <View key={med.id} style={modalStyles.medicationItem}>
-              <View style={{ flex: 1 }}>
-                <Text style={modalStyles.medicationName}>{med.name}</Text>
-                <Text style={modalStyles.medicationDetail}>{med.dosage} • {med.frequency}x/day • {med.days_remaining} days</Text>
-                {med.previewReminderTimes && (
-                  <Text style={modalStyles.reminderPreview}>
-                    Reminders: {med.previewReminderTimes.join(', ')}
-                  </Text>
-                )}
+        
+        <TouchableOpacity style={[modalStyles.saveButton, { backgroundColor: COLORS.secondary, marginBottom: 12 }]} onPress={handleAddMedication}>
+          <Text style={[modalStyles.saveButtonText, { color: COLORS.primary }]}>Add This Medication</Text>
+        </TouchableOpacity>
+
+        {/* List of added medications */}
+        {medications.length > 0 && (
+          <View style={modalStyles.medicationsList}>
+            <Text style={modalStyles.label}>Added Medications ({medications.length})</Text>
+            {medications.map((med, index) => (
+              <View key={med.id} style={modalStyles.medicationItem}>
+                <View style={{ flex: 1 }}>
+                  <Text style={modalStyles.medicationName}>{med.name}</Text>
+                  <Text style={modalStyles.medicationDetail}>{med.dosage} • {med.frequency}x/day • {med.days_remaining} days</Text>
+                  {med.previewReminderTimes && (
+                    <Text style={modalStyles.reminderPreview}>
+                      Reminders: {med.previewReminderTimes.join(', ')}
+                    </Text>
+                  )}
+                </View>
+                <TouchableOpacity 
+                  style={modalStyles.removeButton}
+                  onPress={() => handleRemoveMedication(index)}
+                >
+                  <Ionicons name="trash-outline" size={20} color={COLORS.error} />
+                </TouchableOpacity>
               </View>
-              <TouchableOpacity 
-                style={modalStyles.removeButton}
-                onPress={() => handleRemoveMedication(index)}
-              >
-                <Ionicons name="trash-outline" size={20} color={COLORS.error} />
-              </TouchableOpacity>
-            </View>
-          ))}
-        </View>
-      )}
+            ))}
+          </View>
+        )}
 
-      {error && <Text style={{ color: COLORS.error, marginTop: 8, marginBottom: 8 }}>{error}</Text>}
+        {error && <Text style={{ color: COLORS.error, marginTop: 8, marginBottom: 8 }}>{error}</Text>}
+      </ScrollView>
       
+      {/* Fixed bottom buttons */}
       <View style={modalStyles.buttonRow}>
         <TouchableOpacity style={[modalStyles.saveButton, { flex: 1, marginRight: 8, backgroundColor: COLORS.gray }]} onPress={() => setCurrentStep(1)}>
           <Text style={modalStyles.saveButtonText}>Back</Text>
@@ -931,10 +1123,16 @@ const modalStyles = StyleSheet.create({
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     padding: 24,
-    minHeight: 400,
-    maxHeight: Platform.OS === 'ios' ? 700 : 640,
+    height: Platform.OS === 'ios' ? '85%' : '80%',
     width: '100%',
     alignSelf: 'center',
+    flexDirection: 'column',
+  },
+  overlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   header: {
     fontSize: 28,
@@ -1023,7 +1221,10 @@ const modalStyles = StyleSheet.create({
   },
   buttonRow: {
     flexDirection: 'row',
-    marginTop: 16,
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.lightGray,
   },
   reminderPreview: {
     fontSize: 12,
@@ -1097,6 +1298,45 @@ const modalStyles = StyleSheet.create({
     marginTop: 8,
     fontStyle: 'italic',
     textAlign: 'center',
+  },
+  ocrButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: COLORS.primary,
+    borderRadius: 12,
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+    marginBottom: 16,
+    shadowColor: COLORS.primary,
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  ocrButtonText: {
+    color: COLORS.white,
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginLeft: 8,
+  },
+  ocrButtonScanning: {
+    backgroundColor: COLORS.gray,
+    opacity: 0.8,
+  },
+  divider: {
+    height: 1,
+    backgroundColor: COLORS.lightGray,
+    marginVertical: 16,
+  },
+  ocrIndicator: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  ocrIndicatorText: {
+    color: COLORS.primary,
+    fontSize: 14,
+    marginLeft: 4,
   },
 });
 
@@ -1344,7 +1584,10 @@ export default function Medications() {
       console.log('Fetching medications for profile:', profile.id);
       const { data: meds, error: medsError } = await supabase
         .from('medications')
-        .select('*, prescriptions:prescription_id (id, doctor_name, notes)')
+        .select(`
+          *, 
+          prescriptions:prescription_id (id, doctor_name, notes)
+        `)
         .eq('profile_id', profile.id);
       console.log('Fetched medications:', meds, 'Error:', medsError);
       
@@ -1384,15 +1627,25 @@ export default function Medications() {
   function groupByPrescription(medications: any[]) {
     const groups: Record<string, { prescription: any, medications: any[] }> = {};
     medications.forEach(med => {
-      const presc = med.prescriptions;
-      const prescId = presc?.id || 'no-prescription';
-      if (!groups[prescId]) {
-        groups[prescId] = {
-          prescription: presc,
+      let groupId: string;
+      let prescription = null;
+      
+      if (med.prescription_id && med.prescriptions) {
+        // Medication from prescription
+        prescription = med.prescriptions;
+        groupId = `prescription-${med.prescription_id}`;
+      } else {
+        // Standalone medication
+        groupId = 'no-prescription';
+      }
+      
+      if (!groups[groupId]) {
+        groups[groupId] = {
+          prescription,
           medications: [],
         };
       }
-      groups[prescId].medications.push(med);
+      groups[groupId].medications.push(med);
     });
     return Object.values(groups);
   }
@@ -1432,7 +1685,10 @@ export default function Medications() {
           // Refresh medications list
           const { data: meds, error: medsError } = await supabase
             .from('medications')
-            .select('*, prescriptions:prescription_id (id, doctor_name, notes)')
+            .select(`
+              *, 
+              prescriptions:prescription_id (id, doctor_name, notes)
+            `)
             .eq('profile_id', profile.id);
           if (!medsError) setMedications(meds || []);
         }
@@ -1634,9 +1890,13 @@ export default function Medications() {
       ) : (
         <FlatList
           data={prescriptionGroups}
-          keyExtractor={(item) => item.prescription?.id?.toString() || 'uncategorized'}
+          keyExtractor={(item) => {
+            if (item.prescription) return `prescription-${item.prescription.id}`;
+            return 'uncategorized';
+          }}
           renderItem={({ item: group }) => {
             const prescription = group.prescription;
+            
             return (
               <View style={styles.prescriptionContainer}>
                 {/* Prescription Header */}
@@ -1651,23 +1911,23 @@ export default function Medications() {
                   </View>
                   {prescription && (
                     <View style={styles.prescriptionActions}>
-                                              <TouchableOpacity
-                          style={styles.prescriptionActionBtn}
-                          onPress={() => handleEditPrescription(prescription, group.medications)}
-                        >
-                          <Ionicons name="create-outline" size={18} color={COLORS.white} />
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                          style={styles.prescriptionActionBtn}
-                          onPress={() => {
-                            console.log('Delete button pressed for prescription:', prescription);
-                            handleDeletePrescription(prescription);
-                          }}
-                          accessibilityRole="button"
-                          accessibilityLabel={`Delete prescription from ${prescription.doctor_name}`}
-                        >
-                          <Ionicons name="trash-outline" size={18} color={COLORS.white} />
-                        </TouchableOpacity>
+                      <TouchableOpacity
+                        style={styles.prescriptionActionBtn}
+                        onPress={() => handleEditPrescription(prescription, group.medications)}
+                      >
+                        <Ionicons name="create-outline" size={18} color={COLORS.white} />
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={styles.prescriptionActionBtn}
+                        onPress={() => {
+                          console.log('Delete button pressed for prescription:', prescription);
+                          handleDeletePrescription(prescription);
+                        }}
+                        accessibilityRole="button"
+                        accessibilityLabel={`Delete prescription from ${prescription.doctor_name}`}
+                      >
+                        <Ionicons name="trash-outline" size={18} color={COLORS.white} />
+                      </TouchableOpacity>
                     </View>
                   )}
                 </View>
@@ -2274,5 +2534,4 @@ const styles = StyleSheet.create({
   medicationsList: {
     padding: 12,
   },
-
 }); 

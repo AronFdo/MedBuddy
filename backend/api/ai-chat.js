@@ -7,29 +7,47 @@ console.log('SUPABASE_URL:', process.env.SUPABASE_URL);
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
 
 router.post('/api/ai-chat', async (req, res) => {
-  const { user_id, message } = req.body;
-  if (!user_id || !message) {
-    return res.status(400).json({ error: 'Missing user_id or message' });
+  const { user_id, profile_id, message } = req.body;
+  if (!user_id || !profile_id || !message) {
+    return res.status(400).json({ error: 'Missing user_id, profile_id, or message' });
   }
 
-  // 1. Fetch context from Supabase
-  const { data: medications } = await supabase
+  // 1. Fetch context from Supabase using profile_id (bypass RLS with service role)
+  const { data: medications, error: medError } = await supabase
     .from('medications')
     .select('name, dosage, frequency, explanation_en')
-    .eq('user_id', user_id);
+    .eq('profile_id', profile_id);
 
-  const { data: appointments } = await supabase
+  if (medError) {
+    console.error('Error fetching medications:', medError);
+  }
+
+  const { data: appointments, error: apptError } = await supabase
     .from('appointments')
     .select('doctor_name, date, notes')
-    .eq('user_id', user_id);
+    .eq('profile_id', profile_id);
+
+  if (apptError) {
+    console.error('Error fetching appointments:', apptError);
+  }
 
   // Fetch last 20 conversation messages
-  const { data: history } = await supabase
+  const { data: history, error: historyError } = await supabase
     .from('ai_conversations')
     .select('message, sender, created_at')
-    .eq('user_id', user_id)
+    .eq('profile_id', profile_id)
     .order('created_at', { ascending: true })
     .limit(20);
+
+  if (historyError) {
+    console.error('Error fetching conversation history:', historyError);
+  }
+
+  // Debug: Log what data we're getting
+  console.log('AI Chat - Profile ID:', profile_id);
+  console.log('AI Chat - Medications found:', medications?.length || 0);
+  console.log('AI Chat - Appointments found:', appointments?.length || 0);
+  console.log('AI Chat - History messages found:', history?.length || 0);
 
   // 2. Build the prompt
   let historyText = '';
@@ -69,11 +87,16 @@ The user asks: ${message}
       }
     );
     const aiResponse = openaiRes.data.choices[0].message.content;
-    // 4. Store user and bot messages in conversations table
-    await supabase.from('conversations').insert([
-      { user_id, message, sender: 'user' },
-      { user_id, message: aiResponse, sender: 'bot' }
+    // 4. Store user and bot messages in ai_conversations table
+    const { error: insertError } = await supabase.from('ai_conversations').insert([
+      { profile_id, message, sender: 'user' },
+      { profile_id, message: aiResponse, sender: 'bot' }
     ]);
+    
+    if (insertError) {
+      console.error('Error inserting conversation messages:', insertError);
+    }
+    
     res.json({ response: aiResponse });
   } catch (err) {
     res.status(500).json({ error: 'AI model error', details: err.message });
