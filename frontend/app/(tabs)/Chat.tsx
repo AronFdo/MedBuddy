@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../../lib/supabase';
 import { useProfile } from '../../lib/ProfileContext';
 import { useRouter } from 'expo-router';
+import { BACKEND_URL } from '../../lib/config';
 
 const COLORS = {
   primary: '#307351',
@@ -352,7 +353,7 @@ export default function Chat() {
       }
 
       // Send to AI backend
-      const res = await fetch('http://172.20.10.3:3001/api/ai-chat', {
+              const res = await fetch(`${BACKEND_URL}/api/ai-chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 

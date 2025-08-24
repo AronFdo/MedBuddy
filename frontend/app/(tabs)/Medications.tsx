@@ -7,6 +7,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { Svg, Circle } from 'react-native-svg';
 import { useProfile } from '../../lib/ProfileContext';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import { BACKEND_URL } from '../../lib/config';
 
 const COLORS = {
   primary: '#307351',
@@ -194,7 +195,7 @@ function MultiStepPrescriptionModal({ onSuccess, profileId, accessToken, mealTim
       }
 
       // Call OCR endpoint for single medication
-      const ocrResponse = await fetch(`http://172.20.10.3:3001/api/ocr/medication`, {
+              const ocrResponse = await fetch(`${BACKEND_URL}/api/ocr/medication`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

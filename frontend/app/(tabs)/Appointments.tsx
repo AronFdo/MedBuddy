@@ -6,6 +6,8 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { useProfile } from '../../lib/ProfileContext';
 import { useRouter } from 'expo-router';
 import * as DocumentPicker from 'expo-document-picker';
+import * as FileSystem from 'expo-file-system';
+import { BACKEND_URL } from '../../lib/config';
 import DownloadedReports from '../../components/DownloadedReports';
 
 
@@ -1016,66 +1018,109 @@ export default function Appointments() {
         }
 
         // Call backend endpoint to get signed URL
-        const response = await fetch(`http://172.20.10.3:3001/api/serve-pdf/${record.id}`, {
-          method: 'GET',
-          headers: {
-            'Authorization': `Bearer ${session.access_token}`,
-            'Content-Type': 'application/json',
-          },
-        });
+        let response;
+        try {
+          response = await fetch(`${BACKEND_URL}/api/serve-pdf/${record.id}`, {
+            method: 'GET',
+            headers: {
+              'Authorization': `Bearer ${session.access_token}`,
+              'Content-Type': 'application/json',
+            },
+          });
 
-        if (!response.ok) {
-          const errorData = await response.json();
-          console.error('Backend error:', errorData);
-          Alert.alert('Error', errorData.error || 'Unable to access the report. Please try again.');
+          if (!response.ok) {
+            const errorData = await response.json();
+            console.error('Backend error:', errorData);
+            Alert.alert('Error', errorData.error || 'Unable to access the report. Please try again.');
+            return;
+          }
+        } catch (networkError) {
+          console.error('Network error:', networkError);
+          Alert.alert('Error', 'Unable to connect to the server. Please check your internet connection and try again.');
           return;
         }
 
         const { signedUrl, fileName } = await response.json();
         console.log('Signed URL received from backend:', signedUrl);
         
-        // Download the file using expo-file-system
-        const FileSystem = await import('expo-file-system');
+        // Check if FileSystem is available
+        if (!FileSystem || !FileSystem.documentDirectory) {
+          console.error('FileSystem not available:', FileSystem);
+          Alert.alert('Error', 'File system not available on this device. This feature is only available on mobile devices.');
+          return;
+        }
+        
+        // Check if running on web platform
+        if (Platform.OS === 'web') {
+          Alert.alert('Info', 'File downloads are not supported on web. Please use the mobile app to download reports.');
+          return;
+        }
         
         // Create a unique filename with timestamp
         const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
         const downloadFileName = `${record.title || 'Report'}_${timestamp}.pdf`;
         
         // Get the documents directory
-        const documentsDir = FileSystem.default.documentDirectory;
+        const documentsDir = FileSystem.documentDirectory;
+        if (!documentsDir) {
+          console.error('Documents directory not available');
+          Alert.alert('Error', 'Documents directory not available on this device.');
+          return;
+        }
+        
+        // Ensure the documents directory exists and is writable
+        try {
+          const dirInfo = await FileSystem.getInfoAsync(documentsDir);
+          if (!dirInfo.exists) {
+            console.error('Documents directory does not exist');
+            Alert.alert('Error', 'Documents directory not accessible on this device.');
+            return;
+          }
+        } catch (dirError) {
+          console.error('Error checking documents directory:', dirError);
+          Alert.alert('Error', 'Unable to access documents directory on this device.');
+          return;
+        }
+        
         const fileUri = `${documentsDir}${downloadFileName}`;
+        console.log('Downloading to:', fileUri);
         
         // Show download progress
         Alert.alert('Downloading', 'Your report is being downloaded...\n\nPlease wait while we save your file.');
         
-        // Download the file
-        const downloadResult = await FileSystem.default.downloadAsync(signedUrl, fileUri);
-        
-        if (downloadResult.status === 200) {
-          Alert.alert(
-            'Download Complete', 
-            `Report saved as: ${downloadFileName}`,
-            [
-              { text: 'OK', style: 'default' },
-              { 
-                text: 'Open File', 
-                onPress: () => {
-                  // Try to open the file with the device's default PDF viewer
-                  Linking.openURL(`file://${fileUri}`).catch(() => {
-                    Alert.alert('Info', 'File downloaded successfully. You can find it in your device\'s documents folder.');
-                  });
+        try {
+          // Download the file
+          const downloadResult = await FileSystem.downloadAsync(signedUrl, fileUri);
+          
+          if (downloadResult.status === 200) {
+            Alert.alert(
+              'Download Complete', 
+              `Report saved as: ${downloadFileName}`,
+              [
+                { text: 'OK', style: 'default' },
+                { 
+                  text: 'Open File', 
+                  onPress: () => {
+                    // Try to open the file with the device's default PDF viewer
+                    Linking.openURL(`file://${fileUri}`).catch(() => {
+                      Alert.alert('Info', 'File downloaded successfully. You can find it in your device\'s documents folder.');
+                    });
+                  }
+                },
+                {
+                  text: 'View Downloads',
+                  onPress: () => {
+                    setDownloadedReportsModal(true);
+                  }
                 }
-              },
-              {
-                text: 'View Downloads',
-                onPress: () => {
-                  setDownloadedReportsModal(true);
-                }
-              }
-            ]
-          );
-        } else {
-          Alert.alert('Error', 'Failed to download the report. Please try again.');
+              ]
+            );
+          } else {
+            Alert.alert('Error', 'Failed to download the report. Please try again.');
+          }
+        } catch (downloadError) {
+          console.error('Download error:', downloadError);
+          Alert.alert('Error', 'Failed to download the report. Please check your internet connection and try again.');
         }
       } catch (error) {
         console.error('Error downloading report:', error);
