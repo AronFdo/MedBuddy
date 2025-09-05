@@ -2,7 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const bodyParser = require('body-parser');
 const axios = require('axios');
-const { createClient } = require('@supabase/supabase-js');
+const { getSupabase } = require('../supabaseClient');
 const { v4: uuidv4 } = require('uuid');
 const jwt = require('jsonwebtoken');
 
@@ -10,8 +10,8 @@ const jwt = require('jsonwebtoken');
 // Wrap all endpoint registrations in a function that takes 'app' as an argument
 
 module.exports = (app) => {
-  // Initialize Supabase client
-  const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
+  // Initialize Supabase client via centralized helper
+  const supabase = getSupabase();
 
   // POST /api/ocr/medication - Enhanced single medication OCR
   app.post('/api/ocr/medication', async (req, res) => {

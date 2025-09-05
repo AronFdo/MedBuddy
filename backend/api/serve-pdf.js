@@ -1,12 +1,9 @@
-const { createClient } = require('@supabase/supabase-js');
+const { getSupabase } = require('../supabaseClient');
 const express = require('express');
 const router = express.Router();
 
-// Initialize Supabase with service role key
-const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+// Initialize Supabase via centralized client
+const supabase = getSupabase();
 
 // Serve PDF endpoint
 router.get('/:recordId', async (req, res) => {
