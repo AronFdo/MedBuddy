@@ -1,6 +1,12 @@
 const express = require('express');
-require('dotenv').config();
+const path = require('path');
 const app = express();
+
+if (process.env.NODE_ENV !== 'production') {
+  // Load local env from backend/.env regardless of where the app is started
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  require('dotenv').config({ path: path.join(__dirname, '.env') });
+}
 
 // Add CORS headers
 app.use((req, res, next) => {
@@ -15,8 +21,9 @@ app.use((req, res, next) => {
 });
 
 // Increase body parser limits for large image data
-app.use(express.json({ limit: '50mb' })); // for parsing JSON bodies
-app.use(express.urlencoded({ limit: '50mb', extended: true })); // for parsing URL-encoded bodies
+const BODY_SIZE_LIMIT = process.env.BODY_SIZE_LIMIT || '10mb';
+app.use(express.json({ limit: BODY_SIZE_LIMIT }));
+app.use(express.urlencoded({ limit: BODY_SIZE_LIMIT, extended: true }));
 
 const aiChatRouter = require('./api/ai-chat');
 app.use(aiChatRouter); // This works if ai-chat.js exports a router

@@ -13,3 +13,4 @@ if (typeof global.navigator === 'undefined') {
 if (typeof global.fetch === 'undefined') {
   global.fetch = () => Promise.reject(new Error('fetch not implemented in tests'));
 }
+

@@ -1,12 +1,17 @@
 const express = require('express');
 const router = express.Router();
-const { createClient } = require('@supabase/supabase-js');
+const { getSupabase } = require('../supabaseClient');
 const axios = require('axios');
 
-console.log('SUPABASE_URL:', process.env.SUPABASE_URL);
-const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
+// Avoid creating a new client here; centralized in lib/supabaseClient
 
 router.post('/api/ai-chat', async (req, res) => {
+  let supabase;
+  try {
+    supabase = getSupabase();
+  } catch (e) {
+    return res.status(500).json({ error: e.message });
+  }
   const { user_id, profile_id, message } = req.body;
   if (!user_id || !profile_id || !message) {
     return res.status(400).json({ error: 'Missing user_id, profile_id, or message' });
@@ -86,7 +91,7 @@ The user asks: ${message}
         },
       }
     );
-    const aiResponse = openaiRes.data.choices[0].message.content;
+    const aiResponse = openaiRes.data.choices?.[0]?.message?.content || '';
     // 4. Store user and bot messages in ai_conversations table
     const { error: insertError } = await supabase.from('ai_conversations').insert([
       { profile_id, message, sender: 'user' },
