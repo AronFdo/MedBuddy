@@ -1614,7 +1614,7 @@ export default function Medications() {
 
   // If no profile, prompt user
   if (profileLoading) {
-    return <View style={styles.centered}><ActivityIndicator size="large" color={COLORS.primary} /></View>;
+    return <View style={styles.centered}><ActivityIndicator testID="loading-indicator" size="large" color={COLORS.primary} /></View>;
   }
   if (!profile) {
     return (
@@ -1871,7 +1871,7 @@ export default function Medications() {
 
       {loading ? (
         <View style={styles.centered}>
-          <ActivityIndicator size="large" color={COLORS.primary} />
+          <ActivityIndicator testID="loading-indicator" size="large" color={COLORS.primary} />
         </View>
       ) : error ? (
         <View style={styles.centered}>
@@ -1915,6 +1915,7 @@ export default function Medications() {
                       <TouchableOpacity
                         style={styles.prescriptionActionBtn}
                         onPress={() => handleEditPrescription(prescription, group.medications)}
+                        testID="edit-prescription-button"
                       >
                         <Ionicons name="create-outline" size={18} color={COLORS.white} />
                       </TouchableOpacity>
@@ -1926,6 +1927,7 @@ export default function Medications() {
                         }}
                         accessibilityRole="button"
                         accessibilityLabel={`Delete prescription from ${prescription.doctor_name}`}
+                        testID="delete-prescription-button"
                       >
                         <Ionicons name="trash-outline" size={18} color={COLORS.white} />
                       </TouchableOpacity>
@@ -2012,6 +2014,7 @@ export default function Medications() {
                             style={[styles.cardActionBtn, { backgroundColor: COLORS.primary }]}
                             accessibilityRole="button"
                             accessibilityLabel={`Edit ${medication.name}`}
+                            testID="edit-button"
                           >
                             <Ionicons name="create-outline" size={20} color="#fff" />
                           </TouchableOpacity>
@@ -2115,7 +2118,7 @@ export default function Medications() {
                 profileId={profile.id}
               />
             )}
-            <TouchableOpacity style={styles.closeButton} onPress={() => setShowEditModal(false)}>
+            <TouchableOpacity testID="close-button" style={styles.closeButton} onPress={() => setShowEditModal(false)}>
               <Ionicons name="close" size={28} color={COLORS.primary} />
             </TouchableOpacity>
           </View>
@@ -2167,7 +2170,7 @@ export default function Medications() {
                 mealTimes={mealTimes}
               />
             )}
-            <TouchableOpacity style={styles.closeButton} onPress={() => setShowEditPrescriptionModal(false)}>
+            <TouchableOpacity testID="close-button" style={styles.closeButton} onPress={() => setShowEditPrescriptionModal(false)}>
               <Ionicons name="close" size={28} color={COLORS.primary} />
             </TouchableOpacity>
           </View>
