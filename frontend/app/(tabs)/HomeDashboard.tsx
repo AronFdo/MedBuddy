@@ -223,11 +223,14 @@ export default function HomeDashboard() {
         // Fetch appointments for this profile
         const { data: appts, error: apptError } = await supabase
           .from('appointments')
-          .select('*')
+          .select('appointment_id, profile_id, date, doctor_name, visit_reason, notes, time, location, attended, attended_date')
           .eq('profile_id', profile.id);
         if (!apptError && appts) {
           setAppointments(appts);
         } else {
+          if (apptError) {
+            console.error('Error fetching appointments:', apptError);
+          }
           setAppointments([]);
         }
 

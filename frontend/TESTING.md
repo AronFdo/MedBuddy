@@ -328,3 +328,15 @@ For testing-related issues:
 - Check Jest and React Native Testing Library docs
 - Open an issue with test details and error messages
 
+
+
+
+
+
+
+
+
+
+
+
+

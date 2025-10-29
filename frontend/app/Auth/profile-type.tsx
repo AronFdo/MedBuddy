@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Alert, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useProfile } from '../../lib/ProfileContext';
 import { supabase } from '../../lib/supabase';
 
 const PROFILE_OPTIONS = [
@@ -27,6 +28,7 @@ function ProfileTypeScreen() {
   const name = params.name as string | undefined;
   const age = params.age as string | undefined;
   const gender = params.gender as string | undefined;
+  const { setProfile, refreshProfiles } = useProfile();
 
   const handleSelect = async (profileType: string) => {
     setLoading(true);
@@ -50,9 +52,26 @@ function ProfileTypeScreen() {
     if (error) {
       Alert.alert('Error', error.message);
     } else {
-      Alert.alert('Profile Set', 'Your profile type has been saved.', [
-        { text: 'Continue', onPress: () => router.replace('/Auth') },
-      ]);
+      try {
+        // Refresh and set selected profile so other screens immediately pick it up
+        await refreshProfiles();
+        const { data: userProfiles } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('updated_at', { ascending: false });
+
+        if (userProfiles && userProfiles.length > 0) {
+          const myselfProfile = userProfiles.find(p => p.profile_type === 'myself');
+          const selectedProfile = myselfProfile || userProfiles[0];
+          setProfile(selectedProfile as any);
+        }
+      } catch (e) {
+        // Non-blocking: proceed to app even if refresh fails
+      }
+
+      // Go straight to the app tabs
+      router.replace('/(tabs)/HomeDashboard');
     }
   };
 

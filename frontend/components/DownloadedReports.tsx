@@ -33,32 +33,111 @@ export default function DownloadedReports({ visible, onClose }: DownloadedReport
   const loadReports = async () => {
     setLoading(true);
     try {
-      const documentsDir = FileSystem.documentDirectory;
-      if (!documentsDir) {
-        Alert.alert('Error', 'Could not access documents directory');
+      // Check if running on web platform
+      if (Platform.OS === 'web') {
+        Alert.alert(
+          'Not Available',
+          'Downloaded reports are not available on web. Please use the mobile app to view downloaded reports.',
+        );
+        setReports([]);
+        setLoading(false);
         return;
       }
 
-      const files = await FileSystem.readDirectoryAsync(documentsDir);
-      const pdfFiles = files.filter(file => file.toLowerCase().endsWith('.pdf'));
+      // Try to get documents directory, with fallback to cache directory
+      let documentsDir = FileSystem.documentDirectory;
       
-      const reportPromises = pdfFiles.map(async (fileName) => {
-        const fileUri = `${documentsDir}${fileName}`;
-        const fileInfo = await FileSystem.getInfoAsync(fileUri);
-        
-        return {
-          name: fileName,
-          uri: fileUri,
-          size: fileInfo.size || 0,
-          modificationTime: fileInfo.modificationTime || Date.now(),
-        };
-      });
+      if (!documentsDir) {
+        // Fallback to cache directory if document directory is not available
+        documentsDir = FileSystem.cacheDirectory;
+      }
 
-      const reportList = await Promise.all(reportPromises);
-      setReports(reportList.sort((a, b) => b.modificationTime - a.modificationTime));
-    } catch (error) {
+      if (!documentsDir) {
+        console.error('Neither documentDirectory nor cacheDirectory is available');
+        Alert.alert(
+          'Access Denied',
+          'Unable to access file storage on this device. Please check app permissions or restart the app.',
+        );
+        setReports([]);
+        setLoading(false);
+        return;
+      }
+
+      // Verify directory exists and is accessible
+      try {
+        const dirInfo = await FileSystem.getInfoAsync(documentsDir);
+        if (!dirInfo.exists) {
+          console.error('Directory does not exist:', documentsDir);
+          Alert.alert(
+            'Directory Not Found',
+            'The documents directory was not found. You may need to download a report first.',
+          );
+          setReports([]);
+          setLoading(false);
+          return;
+        }
+      } catch (dirError: any) {
+        console.error('Error checking directory:', dirError);
+        Alert.alert(
+          'Permission Error',
+          'Unable to access file storage. Please ensure the app has storage permissions enabled.',
+        );
+        setReports([]);
+        setLoading(false);
+        return;
+      }
+
+      try {
+        const files = await FileSystem.readDirectoryAsync(documentsDir);
+        const pdfFiles = files.filter(file => file.toLowerCase().endsWith('.pdf'));
+        
+        if (pdfFiles.length === 0) {
+          setReports([]);
+          setLoading(false);
+          return;
+        }
+
+        const reportPromises = pdfFiles.map(async (fileName) => {
+          try {
+            const fileUri = `${documentsDir}${fileName}`;
+            const fileInfo = await FileSystem.getInfoAsync(fileUri);
+            
+            return {
+              name: fileName,
+              uri: fileUri,
+              size: fileInfo.size || 0,
+              modificationTime: fileInfo.modificationTime || Date.now(),
+            };
+          } catch (fileError) {
+            console.error(`Error reading file ${fileName}:`, fileError);
+            return null;
+          }
+        });
+
+        const reportList = (await Promise.all(reportPromises)).filter((report): report is DownloadedReport => report !== null);
+        setReports(reportList.sort((a, b) => b.modificationTime - a.modificationTime));
+      } catch (readError: any) {
+        console.error('Error reading directory:', readError);
+        if (readError.code === 'EACCES' || readError.message?.includes('permission')) {
+          Alert.alert(
+            'Permission Denied',
+            'Storage permission is required to view downloaded reports. Please grant storage permissions in your device settings.',
+          );
+        } else {
+          Alert.alert(
+            'Error',
+            'Failed to read files from storage. Please try again or restart the app.',
+          );
+        }
+        setReports([]);
+      }
+    } catch (error: any) {
       console.error('Error loading reports:', error);
-      Alert.alert('Error', 'Failed to load downloaded reports');
+      Alert.alert(
+        'Error',
+        error.message || 'Failed to load downloaded reports. Please try again.',
+      );
+      setReports([]);
     } finally {
       setLoading(false);
     }

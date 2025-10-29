@@ -83,6 +83,7 @@ function SignInScreen() {
       if (isSignUp) {
         const { data, error } = await supabase.auth.signUp({ email, password });
         if (error) {
+          console.error('Sign up error:', error);
           Alert.alert('Error', error.message);
         } else if (!data.session) {
           Alert.alert('Error', 'No session found. Please try signing in.');
@@ -92,6 +93,7 @@ function SignInScreen() {
       } else {
         const { data, error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) {
+          console.error('Sign in error:', error);
           Alert.alert('Error', error.message);
         } else if (!data.session) {
           Alert.alert('Error', 'No session found. Please try again.');
@@ -100,7 +102,12 @@ function SignInScreen() {
         }
       }
     } catch (error) {
-      Alert.alert('Error', 'An unexpected error occurred');
+      console.error('Authentication error:', error);
+      if (error.message?.includes('network') || error.message?.includes('fetch')) {
+        Alert.alert('Network Error', 'Unable to connect to the server. Please check your internet connection and try again.');
+      } else {
+        Alert.alert('Error', 'An unexpected error occurred. Please try again.');
+      }
     } finally {
       setLoading(false);
     }

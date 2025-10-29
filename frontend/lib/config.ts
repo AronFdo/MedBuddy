@@ -4,10 +4,10 @@ const config = {
     backendUrl: process.env.EXPO_PUBLIC_BACKEND_URL_DEV || 'http://172.20.10.3:3001',
   },
   staging: {
-    backendUrl: process.env.EXPO_PUBLIC_BACKEND_URL_STAGING || 'https://your-staging-backend-url.railway.app',
+    backendUrl: process.env.EXPO_PUBLIC_BACKEND_URL_STAGING || 'https://medbuddy-production.up.railway.app',
   },
   production: {
-    backendUrl: process.env.EXPO_PUBLIC_BACKEND_URL_PROD || 'https://your-production-backend-url.railway.app',
+    backendUrl: process.env.EXPO_PUBLIC_BACKEND_URL_PROD || 'https://medbuddy-production.up.railway.app',
   },
 };
 

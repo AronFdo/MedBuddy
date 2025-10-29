@@ -7,6 +7,7 @@ import * as ImagePicker from 'expo-image-picker';
 import * as FileSystem from 'expo-file-system';
 
 import { useProfile } from '../../lib/ProfileContext';
+import NotificationSettings from '../../components/NotificationSettings';
 
 const COLORS = {
   primary: '#307351',
@@ -249,12 +250,126 @@ function CustomizeModal({ visible, onClose, profile, onSave }: { visible: boolea
     morning: profile?.alarm_times?.morning || '07:00',
     evening: profile?.alarm_times?.evening || '21:00'
   });
+  const [timeErrors, setTimeErrors] = useState<{[key: string]: string}>({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  // Validate time format: HH:MM (24-hour format)
+  const validateTimeFormat = (time: string): boolean => {
+    const timeRegex = /^([01][0-9]|2[0-3]):([0-5][0-9])$/;
+    return timeRegex.test(time);
+  };
+
+  // Format and validate time input as user types
+  const formatTimeInput = (input: string): string => {
+    // Remove any non-numeric characters except colon
+    let cleaned = input.replace(/[^\d:]/g, '');
+    
+    // If input is empty, return empty
+    if (cleaned.length === 0) return '';
+    
+    // If first character is > 2, insert 0 prefix
+    if (cleaned.length === 1 && parseInt(cleaned) > 2) {
+      cleaned = '0' + cleaned;
+    }
+    
+    // If hours > 23, cap at 23
+    if (cleaned.length >= 2 && !cleaned.includes(':')) {
+      const hours = parseInt(cleaned.substring(0, 2));
+      if (hours > 23) {
+        cleaned = '23' + cleaned.substring(2);
+      }
+    }
+    
+    // Add colon after 2 digits if not present
+    if (cleaned.length >= 2 && !cleaned.includes(':')) {
+      cleaned = cleaned.substring(0, 2) + ':' + cleaned.substring(2);
+    }
+    
+    // Limit to 5 characters (HH:MM)
+    if (cleaned.length > 5) {
+      cleaned = cleaned.substring(0, 5);
+    }
+    
+    // Ensure minutes are valid (00-59)
+    if (cleaned.includes(':') && cleaned.length >= 4) {
+      const parts = cleaned.split(':');
+      if (parts.length === 2 && parts[1].length > 0) {
+        const minutes = parseInt(parts[1].substring(0, 2));
+        if (minutes > 59) {
+          cleaned = parts[0] + ':59';
+        }
+      }
+    }
+    
+    return cleaned;
+  };
+
+  // Validate a time value and return error message if invalid
+  const validateTime = (time: string, fieldName: string): string => {
+    if (!time || time.trim() === '') {
+      return `${fieldName} is required`;
+    }
+    
+    if (time.length !== 5) {
+      return 'Time must be in HH:MM format (e.g., 08:00)';
+    }
+    
+    if (!validateTimeFormat(time)) {
+      return 'Invalid time format. Use 24-hour format (00:00 - 23:59)';
+    }
+    
+    return '';
+  };
 
   const handleSave = async () => {
     setLoading(true);
     setError('');
+    setTimeErrors({});
+    
+    // Validate all times before saving
+    const errors: {[key: string]: string} = {};
+    let hasErrors = false;
+
+    // Validate meal times
+    const breakfastError = validateTime(mealTimes.breakfast, 'Breakfast time');
+    if (breakfastError) {
+      errors.breakfast = breakfastError;
+      hasErrors = true;
+    }
+
+    const lunchError = validateTime(mealTimes.lunch, 'Lunch time');
+    if (lunchError) {
+      errors.lunch = lunchError;
+      hasErrors = true;
+    }
+
+    const dinnerError = validateTime(mealTimes.dinner, 'Dinner time');
+    if (dinnerError) {
+      errors.dinner = dinnerError;
+      hasErrors = true;
+    }
+
+    // Validate alarm times
+    const morningError = validateTime(alarmTimes.morning, 'Morning alarm');
+    if (morningError) {
+      errors.morning = morningError;
+      hasErrors = true;
+    }
+
+    const eveningError = validateTime(alarmTimes.evening, 'Evening alarm');
+    if (eveningError) {
+      errors.evening = eveningError;
+      hasErrors = true;
+    }
+
+    if (hasErrors) {
+      setTimeErrors(errors);
+      setError('Please fix all time validation errors before saving.');
+      setLoading(false);
+      return;
+    }
+
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user || !profile) {
@@ -284,18 +399,51 @@ function CustomizeModal({ visible, onClose, profile, onSave }: { visible: boolea
     }
   };
 
-  const TimeInput = ({ label, value, onChange, placeholder }: { label: string, value: string, onChange: (value: string) => void, placeholder: string }) => (
-    <View style={customizeStyles.timeInputContainer}>
-      <Text style={customizeStyles.timeLabel}>{label}</Text>
-      <TextInput
-        style={customizeStyles.timeInput}
-        value={value}
-        onChangeText={onChange}
-        placeholder={placeholder}
-        placeholderTextColor={COLORS.gray}
-      />
-    </View>
-  );
+  const TimeInput = ({ label, value, onChange, placeholder, error, fieldName }: { 
+    label: string, 
+    value: string, 
+    onChange: (value: string) => void, 
+    placeholder: string,
+    error?: string,
+    fieldName: string
+  }) => {
+    const handleTimeChange = (text: string) => {
+      const formatted = formatTimeInput(text);
+      onChange(formatted);
+      
+      // Clear error for this field when user starts typing
+      if (timeErrors[fieldName]) {
+        const newErrors = { ...timeErrors };
+        delete newErrors[fieldName];
+        setTimeErrors(newErrors);
+      }
+    };
+
+    const handleBlur = () => {
+      // Validate when user leaves the field
+      const validationError = validateTime(value, label);
+      if (validationError) {
+        setTimeErrors({ ...timeErrors, [fieldName]: validationError });
+      }
+    };
+
+    return (
+      <View style={customizeStyles.timeInputContainer}>
+        <Text style={customizeStyles.timeLabel}>{label}</Text>
+        <TextInput
+          style={[customizeStyles.timeInput, error && customizeStyles.timeInputError]}
+          value={value}
+          onChangeText={handleTimeChange}
+          onBlur={handleBlur}
+          placeholder={placeholder}
+          placeholderTextColor={COLORS.gray}
+          keyboardType="numeric"
+          maxLength={5}
+        />
+        {error && <Text style={customizeStyles.timeErrorText}>{error}</Text>}
+      </View>
+    );
+  };
 
   return (
     <Modal visible={visible} animationType="slide" transparent>
@@ -324,18 +472,24 @@ function CustomizeModal({ visible, onClose, profile, onSave }: { visible: boolea
                 value={mealTimes.breakfast}
                 onChange={(value) => setMealTimes({...mealTimes, breakfast: value})}
                 placeholder="08:00"
+                error={timeErrors.breakfast}
+                fieldName="breakfast"
               />
               <TimeInput
                 label="Lunch"
                 value={mealTimes.lunch}
                 onChange={(value) => setMealTimes({...mealTimes, lunch: value})}
                 placeholder="13:00"
+                error={timeErrors.lunch}
+                fieldName="lunch"
               />
               <TimeInput
                 label="Dinner"
                 value={mealTimes.dinner}
                 onChange={(value) => setMealTimes({...mealTimes, dinner: value})}
                 placeholder="19:00"
+                error={timeErrors.dinner}
+                fieldName="dinner"
               />
             </View>
 
@@ -354,12 +508,16 @@ function CustomizeModal({ visible, onClose, profile, onSave }: { visible: boolea
                 value={alarmTimes.morning}
                 onChange={(value) => setAlarmTimes({...alarmTimes, morning: value})}
                 placeholder="07:00"
+                error={timeErrors.morning}
+                fieldName="morning"
               />
               <TimeInput
                 label="Evening Alarm"
                 value={alarmTimes.evening}
                 onChange={(value) => setAlarmTimes({...alarmTimes, evening: value})}
                 placeholder="21:00"
+                error={timeErrors.evening}
+                fieldName="evening"
               />
             </View>
 
@@ -615,7 +773,7 @@ function EditProfileModal({ visible, onClose, profile, onSave }: { visible: bool
         // Read file as base64 using FileSystem
         console.log('Reading file with FileSystem...');
         const base64Data = await FileSystem.readAsStringAsync(profilePic, {
-          encoding: FileSystem.EncodingType.Base64,
+          encoding: 'base64',  // ✅ use string literal
         });
         
         console.log('File read successfully, base64 length:', base64Data.length);
@@ -765,6 +923,7 @@ function EditProfileModal({ visible, onClose, profile, onSave }: { visible: bool
 
 
 export default function Profile() {
+  const router = useRouter();
   const { profile, profiles, setProfile, refreshProfiles, loading: profileLoading } = useProfile();
   const [showSwitchModal, setShowSwitchModal] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -853,6 +1012,10 @@ export default function Profile() {
         <View>
           <CustomHeader title="Profile" onSettingsPress={() => setShowSidebar(true)} />
           <ProfileHeader profile={profile} />
+          
+          {/* Notification Settings */}
+          <NotificationSettings profileId={profile?.id} />
+          
           <EditProfileModal visible={showEditModal} onClose={() => setShowEditModal(false)} profile={profile} onSave={async (updated) => {
             console.log('Profile updated, refreshing data...', updated);
             // Refresh profiles and update selected profile
@@ -893,6 +1056,7 @@ export default function Profile() {
         onSwitchProfile={() => setShowSwitchModal(true)}
         onLogout={async () => {
           await supabase.auth.signOut();
+          router.replace('/Auth');
         }}
         onChangePassword={() => {
           // TODO: Implement change password functionality
@@ -1471,6 +1635,15 @@ const customizeStyles = StyleSheet.create({
     padding: 12,
     fontSize: 16,
     backgroundColor: COLORS.lightGray,
+  },
+  timeInputError: {
+    borderColor: COLORS.error,
+    borderWidth: 2,
+  },
+  timeErrorText: {
+    color: COLORS.error,
+    fontSize: 12,
+    marginTop: 4,
   },
   errorText: {
     color: COLORS.error,

@@ -9,6 +9,7 @@ import * as DocumentPicker from 'expo-document-picker';
 import * as FileSystem from 'expo-file-system';
 import { BACKEND_URL } from '../../lib/config';
 import DownloadedReports from '../../components/DownloadedReports';
+import { notificationService } from '../../lib/notificationService';
 
 
 
@@ -45,10 +46,13 @@ function AddAppointmentModalForm({ onSuccess, onCancel, profileId }: { onSuccess
   const [doctorName, setDoctorName] = useState('');
   const [visitReason, setVisitReason] = useState('');
   const [date, setDate] = useState<Date | null>(new Date());
+  const [time, setTime] = useState<Date | null>(null);
+  const [location, setLocation] = useState('');
   const [notes, setNotes] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const [showTimePicker, setShowTimePicker] = useState(false);
 
   const handleSave = async () => {
     setSaving(true);
@@ -59,11 +63,14 @@ function AddAppointmentModalForm({ onSuccess, onCancel, profileId }: { onSuccess
         setSaving(false);
         return;
       }
+      const timeStr = time ? time.toTimeString().slice(0, 5) : null;
       const { error } = await supabase.from('appointments').insert({
         profile_id: profileId,
         doctor_name: doctorName,
         visit_reason: visitReason,
         date: date ? date.toISOString().slice(0, 10) : null,
+        time: timeStr,
+        location: location.trim() || null,
         notes,
       });
       if (error) {
@@ -94,22 +101,51 @@ function AddAppointmentModalForm({ onSuccess, onCancel, profileId }: { onSuccess
         value={visitReason}
         onChangeText={setVisitReason}
       />
-      <TouchableOpacity style={modalStyles.input} onPress={() => setShowDatePicker(true)}>
-        <Text style={{ color: date ? COLORS.primary : COLORS.gray }}>
-          {date ? date.toDateString() : 'Select Date'}
-        </Text>
-      </TouchableOpacity>
-      {showDatePicker && (
-        <DateTimePicker
-          value={date || new Date()}
-          mode="date"
-          display="default"
-          onChange={(_, selectedDate) => {
-            setShowDatePicker(false);
-            if (selectedDate) setDate(selectedDate);
-          }}
-        />
-      )}
+      <View style={modalStyles.rowInput}>
+        <View style={modalStyles.halfInput}>
+          <TouchableOpacity style={modalStyles.halfInputField} onPress={() => setShowDatePicker(true)}>
+            <Text style={{ color: date ? COLORS.primary : COLORS.gray }}>
+              {date ? date.toDateString() : 'Select Date'}
+            </Text>
+          </TouchableOpacity>
+          {showDatePicker && (
+            <DateTimePicker
+              value={date || new Date()}
+              mode="date"
+              display="default"
+              onChange={(_, selectedDate) => {
+                setShowDatePicker(false);
+                if (selectedDate) setDate(selectedDate);
+              }}
+            />
+          )}
+        </View>
+        <View style={modalStyles.halfInput}>
+          <TouchableOpacity style={modalStyles.halfInputField} onPress={() => setShowTimePicker(true)}>
+            <Text style={{ color: time ? COLORS.primary : COLORS.gray }}>
+              {time ? time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Select Time (optional)'}
+            </Text>
+          </TouchableOpacity>
+          {showTimePicker && (
+            <DateTimePicker
+              value={time || new Date()}
+              mode="time"
+              display="default"
+              onChange={(_, selectedTime) => {
+                setShowTimePicker(false);
+                if (selectedTime) setTime(selectedTime);
+              }}
+            />
+          )}
+        </View>
+      </View>
+      <TextInput
+        style={modalStyles.input}
+        placeholder="Location (optional)"
+        value={location}
+        onChangeText={setLocation}
+        placeholderTextColor={COLORS.gray}
+      />
       <TextInput
         style={[modalStyles.input, { height: 60 }]}
         placeholder="Notes (optional)"
@@ -118,12 +154,9 @@ function AddAppointmentModalForm({ onSuccess, onCancel, profileId }: { onSuccess
         multiline
         placeholderTextColor={COLORS.gray}
       />
-      {error && <Text style={{ color: COLORS.error, marginTop: 8 }}>{error}</Text>}
-      <TouchableOpacity style={modalStyles.saveButton} onPress={handleSave} disabled={saving}>
+      {error && <Text style={{ color: COLORS.error, marginTop: 8, marginBottom: 8 }}>{error}</Text>}
+      <TouchableOpacity style={[modalStyles.saveButton, { marginTop: 12 }]} onPress={handleSave} disabled={saving}>
         <Text style={modalStyles.saveButtonText}>{saving ? 'Saving...' : 'Save'}</Text>
-      </TouchableOpacity>
-      <TouchableOpacity style={[modalStyles.saveButton, { backgroundColor: COLORS.gray, marginTop: 8 }]} onPress={onCancel}>
-        <Text style={modalStyles.saveButtonText}>Cancel</Text>
       </TouchableOpacity>
     </View>
   );
@@ -133,19 +166,30 @@ function EditAppointmentModalForm({ appointment, onSuccess, onCancel }: { appoin
   const [doctorName, setDoctorName] = useState(appointment.doctor_name || '');
   const [visitReason, setVisitReason] = useState(appointment.visit_reason || '');
   const [date, setDate] = useState<Date | null>(appointment.date ? new Date(appointment.date) : new Date());
+  const [time, setTime] = useState<Date | null>(appointment.time ? (() => {
+    const [hours, minutes] = appointment.time.split(':');
+    const timeDate = new Date();
+    timeDate.setHours(parseInt(hours), parseInt(minutes), 0);
+    return timeDate;
+  })() : null);
+  const [location, setLocation] = useState(appointment.location || '');
   const [notes, setNotes] = useState(appointment.notes || '');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const [showTimePicker, setShowTimePicker] = useState(false);
 
   const handleSave = async () => {
     setSaving(true);
     setError(null);
     try {
+      const timeStr = time ? time.toTimeString().slice(0, 5) : null;
       const { error } = await supabase.from('appointments').update({
         doctor_name: doctorName,
         visit_reason: visitReason,
         date: date ? date.toISOString().slice(0, 10) : null,
+        time: timeStr,
+        location: location.trim() || null,
         notes,
       }).eq('appointment_id', appointment.appointment_id);
       if (error) {
@@ -192,6 +236,29 @@ function EditAppointmentModalForm({ appointment, onSuccess, onCancel }: { appoin
           }}
         />
       )}
+      <TouchableOpacity style={modalStyles.input} onPress={() => setShowTimePicker(true)}>
+        <Text style={{ color: time ? COLORS.primary : COLORS.gray }}>
+          {time ? time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Select Time (optional)'}
+        </Text>
+      </TouchableOpacity>
+      {showTimePicker && (
+        <DateTimePicker
+          value={time || new Date()}
+          mode="time"
+          display="default"
+          onChange={(_, selectedTime) => {
+            setShowTimePicker(false);
+            if (selectedTime) setTime(selectedTime);
+          }}
+        />
+      )}
+      <TextInput
+        style={modalStyles.input}
+        placeholder="Location (optional)"
+        value={location}
+        onChangeText={setLocation}
+        placeholderTextColor={COLORS.gray}
+      />
       <TextInput
         style={[modalStyles.input, { height: 60 }]}
         placeholder="Notes (optional)"
@@ -204,7 +271,7 @@ function EditAppointmentModalForm({ appointment, onSuccess, onCancel }: { appoin
       <TouchableOpacity style={modalStyles.saveButton} onPress={handleSave} disabled={saving}>
         <Text style={modalStyles.saveButtonText}>{saving ? 'Saving...' : 'Save'}</Text>
       </TouchableOpacity>
-      <TouchableOpacity style={[modalStyles.saveButton, { backgroundColor: COLORS.gray, marginTop: 8 }]} onPress={onCancel}>
+      <TouchableOpacity style={[modalStyles.saveButton, { backgroundColor: COLORS.gray, marginTop: 8, marginBottom: 24 }]} onPress={onCancel}>
         <Text style={modalStyles.saveButtonText}>Cancel</Text>
       </TouchableOpacity>
     </View>
@@ -702,6 +769,7 @@ const modalStyles = StyleSheet.create({
     backgroundColor: COLORS.white,
     borderRadius: 24,
     padding: 24,
+    paddingBottom: 40,
     minHeight: 500,
     maxHeight: '80%',
     width: '100%',
@@ -740,6 +808,24 @@ const modalStyles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 16,
     marginBottom: 16,
+    fontSize: 16,
+    backgroundColor: COLORS.lightGray,
+  },
+  rowInput: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 16,
+    gap: 12,
+  },
+  halfInput: {
+    flex: 1,
+  },
+  halfInputField: {
+    borderWidth: 1,
+    borderColor: COLORS.lightGray,
+    borderRadius: 10,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
     fontSize: 16,
     backgroundColor: COLORS.lightGray,
   },
@@ -908,11 +994,14 @@ export default function Appointments() {
     
     const { data, error } = await supabase
       .from('appointments')
-      .select('*')
+      .select('appointment_id, profile_id, date, doctor_name, visit_reason, notes, time, location, attended, attended_date')
       .eq('profile_id', profile.id);
     if (!error && data) {
       setAppointments(data);
     } else {
+      if (error) {
+        console.error('Error fetching appointments:', error);
+      }
       setAppointments([]);
     }
   };
@@ -937,12 +1026,28 @@ export default function Appointments() {
     if (profile) {
       fetchAppointments();
       fetchHealthRecords();
+      
+      // Schedule appointment reminder notifications
+      try {
+        notificationService.scheduleAllAppointmentReminders(profile.id);
+      } catch (error) {
+        console.error('Error scheduling appointment reminders:', error);
+      }
     }
   }, [profile]);
 
   const handleAddSuccess = () => {
     setShowAddModal(false);
     fetchAppointments();
+    
+    // Schedule notifications for the new appointment
+    if (profile) {
+      try {
+        notificationService.scheduleAllAppointmentReminders(profile.id);
+      } catch (error) {
+        console.error('Error scheduling notifications for new appointment:', error);
+      }
+    }
   };
   const handleEditSuccess = () => {
     setEditModal({ open: false, appointment: null });
@@ -1044,9 +1149,16 @@ export default function Appointments() {
         console.log('Signed URL received from backend:', signedUrl);
         
         // Check if FileSystem is available
-        if (!FileSystem || !FileSystem.documentDirectory) {
+        // const docDir = FileSystem.documentDirectory;
+
+        const docDir = (FileSystem as any).documentDirectory;
+
+        if (!docDir) {
           console.error('FileSystem not available:', FileSystem);
-          Alert.alert('Error', 'File system not available on this device. This feature is only available on mobile devices.');
+          Alert.alert(
+            'Error',
+            'File system not available on this device. This feature is only available on mobile devices.'
+          );
           return;
         }
         
@@ -1061,10 +1173,14 @@ export default function Appointments() {
         const downloadFileName = `${record.title || 'Report'}_${timestamp}.pdf`;
         
         // Get the documents directory
-        const documentsDir = FileSystem.documentDirectory;
+        const documentsDir = (FileSystem as any).documentDirectory;
+
         if (!documentsDir) {
           console.error('Documents directory not available');
-          Alert.alert('Error', 'Documents directory not available on this device.');
+          Alert.alert(
+            'Error',
+            'Documents directory not available on this device.'
+          );
           return;
         }
         
@@ -1177,6 +1293,9 @@ export default function Appointments() {
               <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 6 }}>
                 <Ionicons name="calendar-outline" size={20} color={COLORS.primary} style={{ marginRight: 8 }} />
                 <Text style={styles.appointmentDate}>{item.date}</Text>
+                {item.time && (
+                  <Text style={[styles.appointmentDate, { marginLeft: 8 }]}>• {item.time}</Text>
+                )}
                 {item.attended && (
                   <View style={styles.attendedBadge}>
                     <Ionicons name="checkmark-circle" size={16} color={COLORS.success} />
@@ -1186,6 +1305,7 @@ export default function Appointments() {
               </View>
               <Text style={styles.appointmentDoctor}>{item.doctor_name}</Text>
               {item.visit_reason && <Text style={styles.appointmentSpecialty}>{item.visit_reason}</Text>}
+              {item.location && <Text style={styles.appointmentLocation}>📍 {item.location}</Text>}
               {item.notes && <Text style={styles.appointmentLocation}>{item.notes}</Text>}
               {item.attended && item.attended_date && (
                 <Text style={styles.attendedDate}>Attended on: {new Date(item.attended_date).toLocaleDateString()}</Text>
@@ -1494,6 +1614,10 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 2,
   },
+  attendedCard: {
+    backgroundColor: COLORS.secondary,
+    opacity: 0.9,
+  },
   appointmentDate: {
     fontSize: 15,
     color: COLORS.primary,
@@ -1513,6 +1637,27 @@ const styles = StyleSheet.create({
   appointmentLocation: {
     fontSize: 14,
     color: COLORS.gray,
+  },
+  attendedBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.success,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    marginLeft: 8,
+  },
+  attendedText: {
+    fontSize: 12,
+    color: COLORS.white,
+    fontWeight: 'bold',
+    marginLeft: 4,
+  },
+  attendedDate: {
+    fontSize: 12,
+    color: COLORS.gray,
+    marginTop: 4,
+    fontStyle: 'italic',
   },
   centered: {
     flex: 1,

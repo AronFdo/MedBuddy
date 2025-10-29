@@ -10,7 +10,7 @@
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.medbuddy.app"
+      "bundleIdentifier": "com.maskd.medbuddy"
     },
     "android": {
       "adaptiveIcon": {
@@ -18,12 +18,17 @@
         "backgroundColor": "#307351"
       },
       "edgeToEdgeEnabled": true,
-      "package": "com.medbuddy.app",
+      "package": "com.maskd.medbuddy",
+      "googleServicesFile": "./google-services.json",
+      "useNextNotificationsApi": true,
       "permissions": [
         "android.permission.INTERNET",
         "android.permission.READ_EXTERNAL_STORAGE",
         "android.permission.WRITE_EXTERNAL_STORAGE",
-        "android.permission.CAMERA"
+        "android.permission.CAMERA",
+        "android.permission.RECEIVE_BOOT_COMPLETED",
+        "android.permission.VIBRATE",
+        "android.permission.WAKE_LOCK"
       ]
     },
     "web": {
@@ -41,14 +46,23 @@
           "resizeMode": "contain",
           "backgroundColor": "#307351"
         }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/icon.png",
+          "color": "#307351",
+          "defaultChannel": "default"
+        }
       ]
     ],
     "experiments": {
       "typedRoutes": true
     },
     "extra": {
+      "router": {},
       "eas": {
-        "projectId": "your-project-id-here"
+        "projectId": "3c472a99-4df0-4d85-acd1-93bdb24b0f30"
       }
     }
   }

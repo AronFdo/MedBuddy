@@ -90,7 +90,7 @@ jest.mock('../lib/ProfileContext', () => ({
 
 // Mock config
 jest.mock('../lib/config', () => ({
-  BACKEND_URL: 'http://localhost:3000',
+  BACKEND_URL: 'https://medbuddy-production.up.railway.app:8080',
 }));
 
 // Mock Alert

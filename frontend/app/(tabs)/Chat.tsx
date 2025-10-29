@@ -206,6 +206,7 @@ function ChatInput({
       <TextInput
         style={styles.chatInput}
         placeholder="Ask MedBuddy anything..."
+        placeholderTextColor={COLORS.gray}
         value={input}
         onChangeText={setInput}
         editable={!loading && !disabled}

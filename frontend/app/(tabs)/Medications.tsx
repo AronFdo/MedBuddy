@@ -8,6 +8,7 @@ import { Svg, Circle } from 'react-native-svg';
 import { useProfile } from '../../lib/ProfileContext';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { BACKEND_URL } from '../../lib/config';
+import { notificationService } from '../../lib/notificationService';
 
 const COLORS = {
   primary: '#307351',
@@ -450,6 +451,15 @@ function MultiStepPrescriptionModal({ onSuccess, profileId, accessToken, mealTim
         prescription: prescriptionData,
         medications: insertedMedications
       });
+      
+      // Schedule notifications for the new medications
+      try {
+        await notificationService.scheduleAllMedicationReminders(profileId);
+        console.log('Scheduled notifications for new medications');
+      } catch (error) {
+        console.error('Error scheduling notifications for new medications:', error);
+      }
+      
       onSuccess();
     } catch (e) {
       console.error('Save error:', e);
@@ -467,6 +477,7 @@ function MultiStepPrescriptionModal({ onSuccess, profileId, accessToken, mealTim
       <TextInput
         style={modalStyles.input}
         placeholder="e.g. Dr. Smith"
+        placeholderTextColor={COLORS.gray}
         value={prescription.doctor_name}
         onChangeText={(text) => setPrescription({...prescription, doctor_name: text})}
       />
@@ -503,6 +514,7 @@ function MultiStepPrescriptionModal({ onSuccess, profileId, accessToken, mealTim
       <TextInput
         style={[modalStyles.input, { height: 80, textAlignVertical: 'top' }]}
         placeholder="Additional notes (optional)"
+        placeholderTextColor={COLORS.gray}
         value={prescription.notes}
         onChangeText={(text) => setPrescription({...prescription, notes: text})}
         multiline
@@ -952,156 +964,163 @@ function EditPrescriptionModalForm({ prescription, medications, onSuccess, onCan
 
   return (
     <View style={modalStyles.container}>
-      <Text style={modalStyles.header}>Edit Prescription</Text>
-      
-      {/* Prescription Details */}
-      <Text style={modalStyles.label}>Doctor Name *</Text>
-      <TextInput
-        style={modalStyles.input}
-        placeholder="e.g. Dr. Smith"
-        value={doctorName}
-        onChangeText={setDoctorName}
-      />
-      <Text style={modalStyles.label}>Notes</Text>
-      <TextInput
-        style={[modalStyles.input, { height: 80, textAlignVertical: 'top' }]}
-        placeholder="Additional notes (optional)"
-        value={notes}
-        onChangeText={setNotes}
-        multiline
-      />
-
-      {/* Current Medications */}
-      <Text style={modalStyles.label}>Current Medications ({prescriptionMedications.length})</Text>
-      {prescriptionMedications.map((med, index) => (
-        <View key={med.medication_id || med.id} style={modalStyles.medicationItem}>
-          <View style={{ flex: 1 }}>
-            <Text style={modalStyles.medicationName}>{med.name}</Text>
-            <Text style={modalStyles.medicationDetail}>{med.dosage} • {med.frequency}x/day • {med.days_remaining} days</Text>
-          </View>
-          <TouchableOpacity 
-            style={modalStyles.removeButton}
-            onPress={() => handleRemoveMedication(index)}
-          >
-            <Ionicons name="trash-outline" size={20} color={COLORS.error} />
-          </TouchableOpacity>
-        </View>
-      ))}
-
-      {/* Add New Medication */}
-      <TouchableOpacity 
-        style={[modalStyles.saveButton, { backgroundColor: COLORS.secondary, marginTop: 16 }]} 
-        onPress={() => setShowAddMedication(!showAddMedication)}
+      <ScrollView 
+        style={{ flex: 1 }} 
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: 20 }}
       >
-        <Text style={[modalStyles.saveButtonText, { color: COLORS.primary }]}>
-          {showAddMedication ? 'Cancel Adding' : 'Add New Medication'}
-        </Text>
-      </TouchableOpacity>
+        <Text style={modalStyles.header}>Edit Prescription</Text>
+        
+        {/* Prescription Details */}
+        <Text style={modalStyles.label}>Doctor Name *</Text>
+        <TextInput
+          style={modalStyles.input}
+          placeholder="e.g. Dr. Smith"
+          value={doctorName}
+          onChangeText={setDoctorName}
+        />
+        <Text style={modalStyles.label}>Notes</Text>
+        <TextInput
+          style={[modalStyles.input, { height: 80, textAlignVertical: 'top' }]}
+          placeholder="Additional notes (optional)"
+          value={notes}
+          onChangeText={setNotes}
+          multiline
+        />
 
-      {showAddMedication && (
-        <View style={{ marginTop: 16 }}>
-          <Text style={modalStyles.label}>Medication Name *</Text>
-          <TextInput
-            style={modalStyles.input}
-            placeholder="e.g. Paracetamol"
-            value={currentMedication.name}
-            onChangeText={(text) => setCurrentMedication({...currentMedication, name: text})}
-          />
-          <Text style={modalStyles.label}>Dosage *</Text>
-          <TextInput
-            style={modalStyles.input}
-            placeholder="e.g. 500mg"
-            value={currentMedication.dosage}
-            onChangeText={(text) => setCurrentMedication({...currentMedication, dosage: text})}
-          />
-          
-          <View style={modalStyles.rowInput}>
-            <View style={modalStyles.halfInput}>
-              <Text style={modalStyles.label}>Frequency *</Text>
-              <TextInput
-                style={modalStyles.input}
-                placeholder="2"
-                value={currentMedication.frequency}
-                onChangeText={(text) => setCurrentMedication({...currentMedication, frequency: text})}
-                keyboardType="numeric"
-                maxLength={1}
-              />
+        {/* Current Medications */}
+        <Text style={modalStyles.label}>Current Medications ({prescriptionMedications.length})</Text>
+        {prescriptionMedications.map((med, index) => (
+          <View key={med.medication_id || med.id} style={modalStyles.medicationItem}>
+            <View style={{ flex: 1 }}>
+              <Text style={modalStyles.medicationName}>{med.name}</Text>
+              <Text style={modalStyles.medicationDetail}>{med.dosage} • {med.frequency}x/day • {med.days_remaining} days</Text>
             </View>
-            <View style={modalStyles.halfInput}>
-              <Text style={modalStyles.label}>Days *</Text>
-              <TextInput
-                style={modalStyles.input}
-                placeholder="5"
-                value={currentMedication.days_remaining}
-                onChangeText={(text) => setCurrentMedication({...currentMedication, days_remaining: text})}
-                keyboardType="numeric"
-                maxLength={3}
-              />
-            </View>
+            <TouchableOpacity 
+              style={modalStyles.removeButton}
+              onPress={() => handleRemoveMedication(index)}
+            >
+              <Ionicons name="trash-outline" size={20} color={COLORS.error} />
+            </TouchableOpacity>
           </View>
-          
-          {/* Meal Time Selection for Frequency 1 or 2 */}
-          {(parseInt(currentMedication.frequency) === 1 || parseInt(currentMedication.frequency) === 2) && Object.keys(mealTimes).length > 0 && (
-            <View style={modalStyles.mealTimeSelection}>
-              <Text style={modalStyles.label}>
-                Select {currentMedication.frequency} meal time{parseInt(currentMedication.frequency) > 1 ? 's' : ''} for reminders *
-              </Text>
-              <View style={modalStyles.mealTimeGrid}>
-                {Object.entries(mealTimes).map(([mealName, mealTime]) => {
-                  const isSelected = selectedMealTimes.includes(mealTime);
-                  const canSelect = selectedMealTimes.length < parseInt(currentMedication.frequency) || isSelected;
-                  
-                  return (
-                    <TouchableOpacity
-                      key={mealName}
-                      style={[
-                        modalStyles.mealTimeOption,
-                        isSelected && modalStyles.mealTimeOptionSelected,
-                        !canSelect && modalStyles.mealTimeOptionDisabled
-                      ]}
-                      onPress={() => {
-                        if (canSelect) {
-                          if (isSelected) {
-                            setSelectedMealTimes(selectedMealTimes.filter(time => time !== mealTime));
-                          } else {
-                            setSelectedMealTimes([...selectedMealTimes, mealTime]);
-                          }
-                        }
-                      }}
-                      disabled={!canSelect}
-                    >
-                      <Text style={[
-                        modalStyles.mealTimeText,
-                        isSelected && modalStyles.mealTimeTextSelected,
-                        !canSelect && modalStyles.mealTimeTextDisabled
-                      ]}>
-                        {mealName}
-                      </Text>
-                      <Text style={[
-                        modalStyles.mealTimeValue,
-                        isSelected && modalStyles.mealTimeTextSelected,
-                        !canSelect && modalStyles.mealTimeTextDisabled
-                      ]}>
-                        {mealTime}
-                      </Text>
-                      {isSelected && (
-                        <Ionicons name="checkmark-circle" size={20} color={COLORS.white} style={modalStyles.mealTimeCheck} />
-                      )}
-                    </TouchableOpacity>
-                  );
-                })}
+        ))}
+
+        {/* Add New Medication */}
+        <TouchableOpacity 
+          style={[modalStyles.saveButton, { backgroundColor: COLORS.secondary, marginTop: 16 }]} 
+          onPress={() => setShowAddMedication(!showAddMedication)}
+        >
+          <Text style={[modalStyles.saveButtonText, { color: COLORS.primary }]}>
+            {showAddMedication ? 'Cancel Adding' : 'Add New Medication'}
+          </Text>
+        </TouchableOpacity>
+
+        {showAddMedication && (
+          <View style={{ marginTop: 16 }}>
+            <Text style={modalStyles.label}>Medication Name *</Text>
+            <TextInput
+              style={modalStyles.input}
+              placeholder="e.g. Paracetamol"
+              value={currentMedication.name}
+              onChangeText={(text) => setCurrentMedication({...currentMedication, name: text})}
+            />
+            <Text style={modalStyles.label}>Dosage *</Text>
+            <TextInput
+              style={modalStyles.input}
+              placeholder="e.g. 500mg"
+              value={currentMedication.dosage}
+              onChangeText={(text) => setCurrentMedication({...currentMedication, dosage: text})}
+            />
+            
+            <View style={modalStyles.rowInput}>
+              <View style={modalStyles.halfInput}>
+                <Text style={modalStyles.label}>Frequency *</Text>
+                <TextInput
+                  style={modalStyles.input}
+                  placeholder="2"
+                  value={currentMedication.frequency}
+                  onChangeText={(text) => setCurrentMedication({...currentMedication, frequency: text})}
+                  keyboardType="numeric"
+                  maxLength={1}
+                />
+              </View>
+              <View style={modalStyles.halfInput}>
+                <Text style={modalStyles.label}>Days *</Text>
+                <TextInput
+                  style={modalStyles.input}
+                  placeholder="5"
+                  value={currentMedication.days_remaining}
+                  onChangeText={(text) => setCurrentMedication({...currentMedication, days_remaining: text})}
+                  keyboardType="numeric"
+                  maxLength={3}
+                />
               </View>
             </View>
-          )}
-          
-          <TouchableOpacity style={[modalStyles.saveButton, { backgroundColor: COLORS.secondary, marginTop: 12 }]} onPress={handleAddMedication}>
-            <Text style={[modalStyles.saveButtonText, { color: COLORS.primary }]}>Add This Medication</Text>
-          </TouchableOpacity>
-        </View>
-      )}
+            
+            {/* Meal Time Selection for Frequency 1 or 2 */}
+            {(parseInt(currentMedication.frequency) === 1 || parseInt(currentMedication.frequency) === 2) && Object.keys(mealTimes).length > 0 && (
+              <View style={modalStyles.mealTimeSelection}>
+                <Text style={modalStyles.label}>
+                  Select {currentMedication.frequency} meal time{parseInt(currentMedication.frequency) > 1 ? 's' : ''} for reminders *
+                </Text>
+                <View style={modalStyles.mealTimeGrid}>
+                  {Object.entries(mealTimes).map(([mealName, mealTime]) => {
+                    const isSelected = selectedMealTimes.includes(mealTime);
+                    const canSelect = selectedMealTimes.length < parseInt(currentMedication.frequency) || isSelected;
+                    
+                    return (
+                      <TouchableOpacity
+                        key={mealName}
+                        style={[
+                          modalStyles.mealTimeOption,
+                          isSelected && modalStyles.mealTimeOptionSelected,
+                          !canSelect && modalStyles.mealTimeOptionDisabled
+                        ]}
+                        onPress={() => {
+                          if (canSelect) {
+                            if (isSelected) {
+                              setSelectedMealTimes(selectedMealTimes.filter(time => time !== mealTime));
+                            } else {
+                              setSelectedMealTimes([...selectedMealTimes, mealTime]);
+                            }
+                          }
+                        }}
+                        disabled={!canSelect}
+                      >
+                        <Text style={[
+                          modalStyles.mealTimeText,
+                          isSelected && modalStyles.mealTimeTextSelected,
+                          !canSelect && modalStyles.mealTimeTextDisabled
+                        ]}>
+                          {mealName}
+                        </Text>
+                        <Text style={[
+                          modalStyles.mealTimeValue,
+                          isSelected && modalStyles.mealTimeTextSelected,
+                          !canSelect && modalStyles.mealTimeTextDisabled
+                        ]}>
+                          {mealTime}
+                        </Text>
+                        {isSelected && (
+                          <Ionicons name="checkmark-circle" size={20} color={COLORS.white} style={modalStyles.mealTimeCheck} />
+                        )}
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              </View>
+            )}
+            
+            <TouchableOpacity style={[modalStyles.saveButton, { backgroundColor: COLORS.secondary, marginTop: 12 }]} onPress={handleAddMedication}>
+              <Text style={[modalStyles.saveButtonText, { color: COLORS.primary }]}>Add This Medication</Text>
+            </TouchableOpacity>
+          </View>
+        )}
 
-      {error && <Text style={{ color: COLORS.error, marginTop: 8 }}>{error}</Text>}
+        {error && <Text style={{ color: COLORS.error, marginTop: 8 }}>{error}</Text>}
+      </ScrollView>
       
+      {/* Fixed bottom buttons */}
       <View style={modalStyles.buttonRow}>
         <TouchableOpacity style={[modalStyles.saveButton, { flex: 1, marginRight: 8, backgroundColor: COLORS.gray }]} onPress={onCancel}>
           <Text style={modalStyles.saveButtonText}>Cancel</Text>
@@ -1599,6 +1618,13 @@ export default function Medications() {
       } else {
         console.log('Fetched medications:', meds);
         setMedications(meds || []);
+        
+        // Schedule medication reminder notifications
+        try {
+          await notificationService.scheduleAllMedicationReminders(profile.id);
+        } catch (error) {
+          console.error('Error scheduling medication reminders:', error);
+        }
       }
       // Fetch today's logs for this profile
       const { data: logData, error: logError } = await supabase
