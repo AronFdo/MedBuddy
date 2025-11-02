@@ -1,7 +1,7 @@
 // Configuration for different environments
 const config = {
   development: {
-    backendUrl: process.env.EXPO_PUBLIC_BACKEND_URL_DEV || 'http://172.20.10.3:3001',
+    backendUrl: process.env.EXPO_PUBLIC_BACKEND_URL_DEV || 'https://medbuddy-production.up.railway.app',
   },
   staging: {
     backendUrl: process.env.EXPO_PUBLIC_BACKEND_URL_STAGING || 'https://medbuddy-production.up.railway.app',
