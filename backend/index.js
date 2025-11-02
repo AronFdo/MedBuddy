@@ -45,50 +45,42 @@ app.get('/', (req, res) => {
   res.json({ status: 'OK', service: 'MedBuddy Backend API' });
 });
 
-// TEMPORARILY DISABLED - Testing if health endpoint is causing issues
-// app.get('/health', (req, res) => {
-//   res.json({ status: 'OK', timestamp: new Date().toISOString() });
-// });
-console.log('⚠️  Health endpoint temporarily disabled for testing');
+app.get('/health', (req, res) => {
+  res.json({ status: 'OK', timestamp: new Date().toISOString() });
+});
 
 // Register routes with error handling (after health checks)
 // Load synchronously so Railway doesn't kill container during async loading
 console.log('Loading API routes...');
 
-// TEMPORARILY DISABLED - Testing if AI Chat is causing issues
-// try {
-//   const aiChatRouter = require('./api/ai-chat');
-//   app.use(aiChatRouter);
-//   console.log('✓ AI Chat route loaded');
-// } catch (error) {
-//   console.error('❌ Error loading AI Chat route:', error.message);
-//   console.error('Stack:', error.stack);
-//   // Continue - health endpoint will still work
-// }
-console.log('⚠️  AI Chat route temporarily disabled for testing');
+try {
+  const aiChatRouter = require('./api/ai-chat');
+  app.use(aiChatRouter);
+  console.log('✓ AI Chat route loaded');
+} catch (error) {
+  console.error('❌ Error loading AI Chat route:', error.message);
+  console.error('Stack:', error.stack);
+  // Continue - health endpoint will still work
+}
 
-// TEMPORARILY DISABLED - Testing if servePDF is causing issues
-// try {
-//   const servePdfRouter = require('./api/serve-pdf');
-//   app.use('/api/serve-pdf', servePdfRouter);
-//   console.log('✓ Serve PDF route loaded');
-// } catch (error) {
-//   console.error('❌ Error loading Serve PDF route:', error.message);
-//   console.error('Stack:', error.stack);
-//   // Continue - health endpoint will still work
-// }
-console.log('⚠️  Serve PDF route temporarily disabled for testing');
+try {
+  const servePdfRouter = require('./api/serve-pdf');
+  app.use('/api/serve-pdf', servePdfRouter);
+  console.log('✓ Serve PDF route loaded');
+} catch (error) {
+  console.error('❌ Error loading Serve PDF route:', error.message);
+  console.error('Stack:', error.stack);
+  // Continue - health endpoint will still work
+}
 
-// TEMPORARILY DISABLED - Testing if OCR is causing issues
-// try {
-//   require('./api/ocr')(app);
-//   console.log('✓ OCR routes loaded');
-// } catch (error) {
-//   console.error('❌ Error loading OCR routes:', error.message);
-//   console.error('Stack:', error.stack);
-//   // Continue - health endpoint will still work
-// }
-console.log('⚠️  OCR routes temporarily disabled for testing');
+try {
+  require('./api/ocr')(app);
+  console.log('✓ OCR routes loaded');
+} catch (error) {
+  console.error('❌ Error loading OCR routes:', error.message);
+  console.error('Stack:', error.stack);
+  // Continue - health endpoint will still work
+}
 
 console.log('✓ All routes loaded (or failed gracefully)');
 
