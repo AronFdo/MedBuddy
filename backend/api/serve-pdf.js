@@ -2,8 +2,14 @@ const { getSupabase } = require('../supabaseClient');
 const express = require('express');
 const router = express.Router();
 
-// Initialize Supabase via centralized client
-const supabase = getSupabase();
+// Lazy initialization - only get Supabase client when needed
+let supabase = null;
+const getSupabaseClient = () => {
+  if (!supabase) {
+    supabase = getSupabase();
+  }
+  return supabase;
+};
 
 // Serve PDF endpoint
 router.get('/:recordId', async (req, res) => {
@@ -17,15 +23,16 @@ router.get('/:recordId', async (req, res) => {
     }
 
     const token = authorization.split(' ')[1];
+    const supabaseClient = getSupabaseClient();
     
     // Verify the JWT token
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    const { data: { user }, error: authError } = await supabaseClient.auth.getUser(token);
     if (authError || !user) {
       return res.status(401).json({ error: 'Invalid token' });
     }
 
     // Get the health record and verify ownership
-    const { data: record, error: recordError } = await supabase
+    const { data: record, error: recordError } = await supabaseClient
       .from('health_records')
       .select(`
         id,
@@ -68,7 +75,7 @@ router.get('/:recordId', async (req, res) => {
     console.log('Attempting to generate signed URL for file path:', filePath);
 
     // Generate a signed URL with service role (more reliable)
-    const { data: signedUrlData, error: signedUrlError } = await supabase.storage
+    const { data: signedUrlData, error: signedUrlError } = await supabaseClient.storage
       .from('reports')
       .createSignedUrl(filePath, 3600); // 1 hour expiry
 
@@ -78,7 +85,7 @@ router.get('/:recordId', async (req, res) => {
       console.error('Record attachment_url:', record.attachment_url);
       
       // Check if file exists in storage
-      const { data: fileExists, error: listError } = await supabase.storage
+      const { data: fileExists, error: listError } = await supabaseClient.storage
         .from('reports')
         .list(filePath.split('/').slice(0, -1).join('/'));
       

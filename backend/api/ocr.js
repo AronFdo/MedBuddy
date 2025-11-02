@@ -7,8 +7,14 @@ const jwt = require('jsonwebtoken');
 // Wrap all endpoint registrations in a function that takes 'app' as an argument
 
 module.exports = (app) => {
-  // Initialize Supabase client via centralized helper
-  const supabase = getSupabase();
+  // Lazy initialization - only get Supabase client when needed
+  let supabase = null;
+  const getSupabaseClient = () => {
+    if (!supabase) {
+      supabase = getSupabase();
+    }
+    return supabase;
+  };
 
   // POST /api/ocr/medication - Enhanced single medication OCR
   app.post('/api/ocr/medication', async (req, res) => {
@@ -33,7 +39,8 @@ module.exports = (app) => {
     
     // Validate that the profile belongs to the authenticated user
     try {
-      const { data: profileData, error: profileError } = await supabase
+      const supabaseClient = getSupabaseClient();
+      const { data: profileData, error: profileError } = await supabaseClient
         .from('profiles')
         .select('user_id')
         .eq('id', profile_id)
@@ -167,7 +174,8 @@ module.exports = (app) => {
         explanation_ta: explanations.ta,
       };
       console.log('Insert payload:', insertPayload);
-      const { data, error } = await supabase.from('medications').insert(insertPayload).select().single();
+      const supabaseClient = getSupabaseClient();
+      const { data, error } = await supabaseClient.from('medications').insert(insertPayload).select().single();
       if (error) {
         return res.status(500).json({ error: error.message });
       }
