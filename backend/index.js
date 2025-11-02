@@ -113,6 +113,13 @@ try {
   server = app.listen(PORT, '0.0.0.0', () => {
     console.log(`✓ Server running on port ${PORT}`);
     console.log(`✓ Server ready to accept connections`);
+    console.log(`✓ Process PID: ${process.pid}`);
+    console.log(`✓ Uptime: ${process.uptime()}s`);
+    
+    // Keep process alive - log periodically
+    setInterval(() => {
+      console.log(`[${new Date().toISOString()}] Server alive - uptime: ${Math.floor(process.uptime())}s`);
+    }, 10000); // Every 10 seconds
   });
 } catch (error) {
   console.error('❌ Failed to start server:', error);
@@ -121,12 +128,18 @@ try {
 
 // Handle graceful shutdown (Railway sends SIGTERM)
 process.on('SIGTERM', () => {
-  console.log('⚠️  Received SIGTERM, shutting down gracefully...');
+  console.log('⚠️  Received SIGTERM signal - Railway is stopping container');
+  console.log(`⚠️  Uptime before shutdown: ${process.uptime()}s`);
   if (server) {
     server.close(() => {
       console.log('✓ Server closed gracefully');
       process.exit(0);
     });
+    // Force exit after 5 seconds if close doesn't complete
+    setTimeout(() => {
+      console.log('⚠️  Force exiting after timeout');
+      process.exit(0);
+    }, 5000);
   } else {
     process.exit(0);
   }
@@ -145,26 +158,29 @@ process.on('SIGINT', () => {
 
 server.on('error', (error) => {
   console.error('❌ Server error:', error);
+  console.error('Error code:', error.code);
   if (error.code === 'EADDRINUSE') {
     console.error(`Port ${PORT} is already in use`);
   }
   process.exit(1);
 });
 
-// Handle uncaught exceptions
+// Handle uncaught exceptions - but don't exit immediately
 process.on('uncaughtException', (error) => {
   console.error('❌ Uncaught Exception:', error);
   console.error('Stack:', error.stack);
+  console.error('⚠️  Process will exit in 2 seconds...');
   // Give time for logs to flush before exiting
   setTimeout(() => {
+    console.error('❌ Exiting due to uncaught exception');
     process.exit(1);
-  }, 1000);
+  }, 2000);
 });
 
-// Handle unhandled promise rejections
+// Handle unhandled promise rejections - log but don't exit
 process.on('unhandledRejection', (reason, promise) => {
-  console.error('❌ Unhandled Rejection at:', promise);
+  console.error('❌ Unhandled Rejection detected');
   console.error('Reason:', reason);
-  // Log but don't exit immediately - allow server to continue if possible
-  console.error('⚠️  Continuing despite unhandled rejection - check for issues');
+  console.error('Promise:', promise);
+  console.error('⚠️  Continuing despite unhandled rejection');
 });
