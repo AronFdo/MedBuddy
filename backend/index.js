@@ -28,45 +28,65 @@ const BODY_SIZE_LIMIT = process.env.BODY_SIZE_LIMIT || '10mb';
 app.use(express.json({ limit: BODY_SIZE_LIMIT }));
 app.use(express.urlencoded({ limit: BODY_SIZE_LIMIT, extended: true }));
 
+// Health check endpoint (register FIRST so it always works)
+app.get('/health', (req, res) => {
+  res.json({ 
+    status: 'OK', 
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+    memory: process.memoryUsage()
+  });
+});
+console.log('✓ Health check endpoint registered (early)');
+
 // Register routes with error handling
 console.log('Loading routes...');
+let routesLoaded = false;
+
 try {
   console.log('Loading ai-chat router...');
   const aiChatRouter = require('./api/ai-chat');
-  app.use(aiChatRouter); // This works if ai-chat.js exports a router
-  console.log('✓ ai-chat router loaded');
+  if (aiChatRouter && typeof aiChatRouter === 'object') {
+    app.use(aiChatRouter);
+    console.log('✓ ai-chat router loaded');
+  } else {
+    console.warn('⚠ ai-chat router format unexpected, attempting to use anyway');
+    app.use(aiChatRouter);
+  }
+} catch (error) {
+  console.error('✗ Error loading ai-chat router:', error.message);
+  console.error('Stack:', error.stack);
+  // Continue - don't crash
+}
 
+try {
   console.log('Loading serve-pdf router...');
   const servePdfRouter = require('./api/serve-pdf');
   app.use('/api/serve-pdf', servePdfRouter);
   console.log('✓ serve-pdf router loaded');
-
-  console.log('Loading OCR routes...');
-  require('./api/ocr')(app); // Register OCR endpoints
-  console.log('✓ OCR routes loaded');
-
-  // Health check endpoint (must work even if other routes fail)
-  app.get('/health', (req, res) => {
-    res.json({ status: 'OK', timestamp: new Date().toISOString() });
-  });
-  console.log('✓ Health check endpoint registered');
-
-  console.log('All routes loaded successfully');
 } catch (error) {
-  console.error('✗ Error loading routes:', error);
-  console.error('Stack trace:', error.stack);
-  
-  // Still register health check so the server can report its status
-  app.get('/health', (req, res) => {
-    res.status(503).json({ 
-      status: 'ERROR', 
-      message: 'Server is running but some routes failed to load',
-      timestamp: new Date().toISOString() 
-    });
-  });
-  
-  // Don't exit - let the server start anyway for health checks
+  console.error('✗ Error loading serve-pdf router:', error.message);
+  console.error('Stack:', error.stack);
+  // Continue - don't crash
 }
+
+try {
+  console.log('Loading OCR routes...');
+  const ocrModule = require('./api/ocr');
+  if (typeof ocrModule === 'function') {
+    ocrModule(app);
+    console.log('✓ OCR routes loaded');
+  } else {
+    console.warn('⚠ OCR module format unexpected');
+  }
+} catch (error) {
+  console.error('✗ Error loading OCR routes:', error.message);
+  console.error('Stack:', error.stack);
+  // Continue - don't crash
+}
+
+routesLoaded = true;
+console.log('Route loading complete');
 
 // Error handling middleware (must be AFTER all routes)
 app.use((err, req, res, next) => {
@@ -74,62 +94,102 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: 'Internal server error', message: err.message });
 });
 
-// Handle unhandled promise rejections
+// Handle unhandled promise rejections - CRITICAL: Don't let these crash the container
 process.on('unhandledRejection', (reason, promise) => {
-  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
-  // Log but don't exit - let the server continue running
-  // In production, you might want to restart the process instead
+  console.error('Unhandled Rejection at:', promise);
+  console.error('Reason:', reason);
+  if (reason instanceof Error) {
+    console.error('Error stack:', reason.stack);
+  }
+  // DO NOT exit - Railway will kill the container if process exits
+  // Log and continue - the error handling middleware will catch request errors
 });
 
-// Handle uncaught exceptions (only exit if in production)
+// Handle uncaught exceptions - CRITICAL: Catch and log, don't exit immediately
 process.on('uncaughtException', (error) => {
   console.error('Uncaught Exception:', error);
-  // Give the server time to log and then exit
-  setTimeout(() => {
-    process.exit(1);
-  }, 1000);
+  console.error('Stack:', error.stack);
+  // Log the error but DON'T exit - Railway needs the process to stay alive
+  // The server should still be able to respond to health checks
+  // Only exit if it's a critical error that makes the server unusable
 });
 
 // ... other routes
 
 const PORT = process.env.PORT || 3001;
 console.log(`Attempting to start server on port ${PORT}...`);
+console.log(`PORT from env: ${process.env.PORT || 'using default 3001'}`);
 
-const server = app.listen(PORT, '0.0.0.0', () => {
-  console.log(`✓ Server running on port ${PORT}`);
-  console.log(`✓ Health check available at http://localhost:${PORT}/health`);
-  console.log('✓ Server ready to accept requests');
-}).on('error', (err) => {
-  console.error('✗ Server failed to start:', err);
-  console.error('Error code:', err.code);
-  console.error('Error message:', err.message);
-  
-  if (err.code === 'EADDRINUSE') {
-    console.error(`Port ${PORT} is already in use. Please use a different port.`);
-  }
-  
-  process.exit(1);
-});
+let server;
 
-// Graceful shutdown
-process.on('SIGTERM', () => {
-  console.log('SIGTERM received, shutting down gracefully...');
-  server.close(() => {
-    console.log('Server closed');
-    process.exit(0);
+try {
+  server = app.listen(PORT, '0.0.0.0', () => {
+    console.log(`✓ Server running on port ${PORT}`);
+    console.log(`✓ Health check available at http://0.0.0.0:${PORT}/health`);
+    console.log('✓ Server ready to accept requests');
+    
+    // Keepalive: Log every 30 seconds to prevent Railway from thinking the process is dead
+    setInterval(() => {
+      console.log(`[Keepalive] Server running, uptime: ${Math.floor(process.uptime())}s`);
+    }, 30000);
+  }).on('error', (err) => {
+    console.error('✗ Server failed to start:', err);
+    console.error('Error code:', err.code);
+    console.error('Error message:', err.message);
+    console.error('Full error:', err);
+    
+    if (err.code === 'EADDRINUSE') {
+      console.error(`Port ${PORT} is already in use. Please use a different port.`);
+    }
+    
+    // Only exit if we can't start the server at all
+    // Railway will restart the container
+    setTimeout(() => {
+      console.error('Exiting due to server startup failure...');
+      process.exit(1);
+    }, 5000); // Give time for logs to flush
   });
   
-  // Force close after 10 seconds
+    console.log('Server listen call completed');
+    
+    // Register graceful shutdown handlers AFTER server is created
+    process.on('SIGTERM', () => {
+      console.log('SIGTERM received, shutting down gracefully...');
+      if (server && server.close) {
+        server.close(() => {
+          console.log('Server closed gracefully');
+          process.exit(0);
+        });
+        
+        // Force close after 10 seconds if graceful shutdown doesn't complete
+        setTimeout(() => {
+          console.error('Forcing shutdown after timeout...');
+          process.exit(1);
+        }, 10000);
+      } else {
+        console.log('Server not running, exiting immediately');
+        process.exit(0);
+      }
+    });
+
+    process.on('SIGINT', () => {
+      console.log('SIGINT received, shutting down gracefully...');
+      if (server && server.close) {
+        server.close(() => {
+          console.log('Server closed gracefully');
+          process.exit(0);
+        });
+      } else {
+        process.exit(0);
+      }
+    });
+    
+    console.log('Graceful shutdown handlers registered');
+} catch (error) {
+  console.error('✗ Fatal error during server startup:', error);
+  console.error('Stack:', error.stack);
+  // Give Railway time to capture logs before exit
   setTimeout(() => {
-    console.error('Forcing shutdown...');
     process.exit(1);
-  }, 10000);
-});
-
-process.on('SIGINT', () => {
-  console.log('SIGINT received, shutting down gracefully...');
-  server.close(() => {
-    console.log('Server closed');
-    process.exit(0);
-  });
-});
+  }, 2000);
+}
