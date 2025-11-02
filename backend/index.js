@@ -40,35 +40,13 @@ const BODY_SIZE_LIMIT = process.env.BODY_SIZE_LIMIT || '10mb';
 app.use(express.json({ limit: BODY_SIZE_LIMIT }));
 app.use(express.urlencoded({ limit: BODY_SIZE_LIMIT, extended: true }));
 
-// Track server readiness
-let serverReady = false;
-
-// Root endpoint - Railway often checks this (register early)
+// Simple health check endpoints (Railway just checks if port responds, but these are useful for debugging)
 app.get('/', (req, res) => {
-  res.status(200).json({ 
-    status: 'OK',
-    service: 'MedBuddy Backend API',
-    timestamp: new Date().toISOString(),
-    ready: serverReady,
-    uptime: process.uptime()
-  });
+  res.json({ status: 'OK', service: 'MedBuddy Backend API' });
 });
 
-// Health check endpoint - Railway uses this for health checks (register early)
 app.get('/health', (req, res) => {
-  const hasSupabase = !!process.env.SUPABASE_URL;
-  res.status(200).json({ 
-    status: hasSupabase ? 'OK' : 'WARNING',
-    timestamp: new Date().toISOString(),
-    supabaseConfigured: hasSupabase,
-    ready: serverReady,
-    uptime: process.uptime()
-  });
-});
-
-// Keep-alive endpoint
-app.get('/ping', (req, res) => {
-  res.status(200).json({ status: 'pong', timestamp: new Date().toISOString() });
+  res.json({ status: 'OK', timestamp: new Date().toISOString() });
 });
 
 // Register routes with error handling (after health checks)
@@ -85,15 +63,17 @@ try {
   // Continue - health endpoint will still work
 }
 
-try {
-  const servePdfRouter = require('./api/serve-pdf');
-  app.use('/api/serve-pdf', servePdfRouter);
-  console.log('✓ Serve PDF route loaded');
-} catch (error) {
-  console.error('❌ Error loading Serve PDF route:', error.message);
-  console.error('Stack:', error.stack);
-  // Continue - health endpoint will still work
-}
+// TEMPORARILY DISABLED - Testing if servePDF is causing issues
+// try {
+//   const servePdfRouter = require('./api/serve-pdf');
+//   app.use('/api/serve-pdf', servePdfRouter);
+//   console.log('✓ Serve PDF route loaded');
+// } catch (error) {
+//   console.error('❌ Error loading Serve PDF route:', error.message);
+//   console.error('Stack:', error.stack);
+//   // Continue - health endpoint will still work
+// }
+console.log('⚠️  Serve PDF route temporarily disabled for testing');
 
 try {
   require('./api/ocr')(app);
@@ -104,7 +84,6 @@ try {
   // Continue - health endpoint will still work
 }
 
-serverReady = true;
 console.log('✓ All routes loaded (or failed gracefully)');
 
 // Error handling middleware
@@ -127,32 +106,19 @@ let server;
 try {
   server = app.listen(PORT, '0.0.0.0', () => {
     console.log(`✓ Server running on port ${PORT}`);
-    console.log(`✓ Health check available at http://0.0.0.0:${PORT}/health`);
-    console.log(`✓ Root endpoint available at http://0.0.0.0:${PORT}/`);
-    console.log(`✓ Server is listening and ready to accept connections`);
-    // serverReady is already set to true after routes are loaded
-    console.log(`✓ Server fully initialized and ready (ready: ${serverReady})`);
+    console.log(`✓ Server ready to accept connections`);
   });
 } catch (error) {
   console.error('❌ Failed to start server:', error);
   process.exit(1);
 }
 
-// Keep the process alive and log periodically
-let keepAliveInterval = setInterval(() => {
-  // Log every 5 minutes to show server is alive
-  if (Date.now() % 300000 < 1000) {
-    console.log(`✓ Server heartbeat - uptime: ${Math.floor(process.uptime())}s`);
-  }
-}, 30000);
-
-// Clean up interval on exit
+// Handle graceful shutdown (Railway sends SIGTERM)
 process.on('SIGTERM', () => {
   console.log('⚠️  Received SIGTERM, shutting down gracefully...');
-  clearInterval(keepAliveInterval);
   if (server) {
     server.close(() => {
-      console.log('✓ Server closed');
+      console.log('✓ Server closed gracefully');
       process.exit(0);
     });
   } else {
@@ -161,11 +127,9 @@ process.on('SIGTERM', () => {
 });
 
 process.on('SIGINT', () => {
-  console.log('⚠️  Received SIGINT, shutting down gracefully...');
-  clearInterval(keepAliveInterval);
+  console.log('⚠️  Received SIGINT, shutting down...');
   if (server) {
     server.close(() => {
-      console.log('✓ Server closed');
       process.exit(0);
     });
   } else {
