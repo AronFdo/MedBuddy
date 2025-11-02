@@ -75,14 +75,16 @@ try {
 // }
 console.log('⚠️  Serve PDF route temporarily disabled for testing');
 
-try {
-  require('./api/ocr')(app);
-  console.log('✓ OCR routes loaded');
-} catch (error) {
-  console.error('❌ Error loading OCR routes:', error.message);
-  console.error('Stack:', error.stack);
-  // Continue - health endpoint will still work
-}
+// TEMPORARILY DISABLED - Testing if OCR is causing issues
+// try {
+//   require('./api/ocr')(app);
+//   console.log('✓ OCR routes loaded');
+// } catch (error) {
+//   console.error('❌ Error loading OCR routes:', error.message);
+//   console.error('Stack:', error.stack);
+//   // Continue - health endpoint will still work
+// }
+console.log('⚠️  OCR routes temporarily disabled for testing');
 
 console.log('✓ All routes loaded (or failed gracefully)');
 
