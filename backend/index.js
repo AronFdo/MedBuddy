@@ -116,22 +116,33 @@ process.on('uncaughtException', (error) => {
 
 // ... other routes
 
+// Railway automatically sets PORT environment variable
+// If not set, default to 3001 for local development
 const PORT = process.env.PORT || 3001;
-console.log(`Attempting to start server on port ${PORT}...`);
-console.log(`PORT from env: ${process.env.PORT || 'using default 3001'}`);
+const HOST = process.env.HOST || '0.0.0.0';
+
+console.log('='.repeat(50));
+console.log('Server Configuration:');
+console.log(`  PORT: ${PORT} ${process.env.PORT ? '(from Railway)' : '(default)'}`);
+console.log(`  HOST: ${HOST}`);
+console.log(`  NODE_ENV: ${process.env.NODE_ENV || 'development'}`);
+console.log(`  Railway URL: ${process.env.RAILWAY_PUBLIC_DOMAIN || 'Not set'}`);
+console.log('='.repeat(50));
+console.log(`Attempting to start server on ${HOST}:${PORT}...`);
 
 let server;
 
 try {
-  server = app.listen(PORT, '0.0.0.0', () => {
-    console.log(`✓ Server running on port ${PORT}`);
-    console.log(`✓ Health check available at http://0.0.0.0:${PORT}/health`);
+  server = app.listen(PORT, HOST, () => {
+    console.log('='.repeat(50));
+    console.log('✓ SERVER SUCCESSFULLY STARTED');
+    console.log(`✓ Listening on ${HOST}:${PORT}`);
+    console.log(`✓ Health check: http://${HOST}:${PORT}/health`);
+    if (process.env.RAILWAY_PUBLIC_DOMAIN) {
+      console.log(`✓ Public URL: https://${process.env.RAILWAY_PUBLIC_DOMAIN}`);
+    }
     console.log('✓ Server ready to accept requests');
-    
-    // Keepalive: Log every 30 seconds to prevent Railway from thinking the process is dead
-    setInterval(() => {
-      console.log(`[Keepalive] Server running, uptime: ${Math.floor(process.uptime())}s`);
-    }, 30000);
+    console.log('='.repeat(50));
   }).on('error', (err) => {
     console.error('✗ Server failed to start:', err);
     console.error('Error code:', err.code);
