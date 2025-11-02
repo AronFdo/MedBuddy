@@ -97,7 +97,7 @@ app.use((req, res) => {
 
 // ... other routes
 
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.PORT || 8080;
 
 // Start server with error handling
 let server;
