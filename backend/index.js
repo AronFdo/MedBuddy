@@ -1,3 +1,4 @@
+
 const express = require('express');
 const path = require('path');
 const app = express();
@@ -40,52 +41,5 @@ app.get('/health', (req, res) => {
 
 // ... other routes
 
-const PORT = process.env.PORT || 8080;
-const server = app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
-
-// Graceful shutdown handling
-const gracefulShutdown = (signal) => {
-  console.log(`Received ${signal}. Starting graceful shutdown...`);
-  
-  server.close((err) => {
-    if (err) {
-      console.error('Error during server shutdown:', err);
-      process.exit(1);
-    }
-    
-    console.log('Server closed successfully.');
-    console.log('Shutting down...');
-    process.exit(0);
-  });
-  
-  // Force shutdown after 10 seconds
-  setTimeout(() => {
-    console.error('Forced shutdown after timeout');
-    process.exit(1);
-  }, 10000);
-};
-
-// Handle termination signals
-process.on('SIGTERM', () => {
-  console.log('SIGTERM received - container stopping');
-  gracefulShutdown('SIGTERM');
-});
-
-process.on('SIGINT', () => {
-  console.log('SIGINT received - container stopping');
-  gracefulShutdown('SIGINT');
-});
-
-// Handle uncaught exceptions
-process.on('uncaughtException', (error) => {
-  console.error('Uncaught Exception:', error);
-  console.log('Container stopping due to uncaught exception');
-  gracefulShutdown('uncaughtException');
-});
-
-// Handle unhandled promise rejections
-process.on('unhandledRejection', (reason, promise) => {
-  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
-  console.log('Container stopping due to unhandled rejection');
-  gracefulShutdown('unhandledRejection');
-});
+const PORT = process.env.PORT || 3001;
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
