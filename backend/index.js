@@ -115,11 +115,6 @@ try {
     console.log(`✓ Server ready to accept connections`);
     console.log(`✓ Process PID: ${process.pid}`);
     console.log(`✓ Uptime: ${process.uptime()}s`);
-    
-    // Keep process alive - log periodically
-    setInterval(() => {
-      console.log(`[${new Date().toISOString()}] Server alive - uptime: ${Math.floor(process.uptime())}s`);
-    }, 10000); // Every 10 seconds
   });
 } catch (error) {
   console.error('❌ Failed to start server:', error);
