@@ -45,9 +45,11 @@ app.get('/', (req, res) => {
   res.json({ status: 'OK', service: 'MedBuddy Backend API' });
 });
 
-app.get('/health', (req, res) => {
-  res.json({ status: 'OK', timestamp: new Date().toISOString() });
-});
+// TEMPORARILY DISABLED - Testing if health endpoint is causing issues
+// app.get('/health', (req, res) => {
+//   res.json({ status: 'OK', timestamp: new Date().toISOString() });
+// });
+console.log('⚠️  Health endpoint temporarily disabled for testing');
 
 // Register routes with error handling (after health checks)
 // Load synchronously so Railway doesn't kill container during async loading
