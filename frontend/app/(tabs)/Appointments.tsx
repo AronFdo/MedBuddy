@@ -6,7 +6,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { useProfile } from '../../lib/ProfileContext';
 import { useRouter } from 'expo-router';
 import * as DocumentPicker from 'expo-document-picker';
-import * as FileSystem from 'expo-file-system/legacy';
+import * as FileSystem from 'expo-file-system';
 import { BACKEND_URL } from '../../lib/config';
 import DownloadedReports from '../../components/DownloadedReports';
 import { notificationService } from '../../lib/notificationService';
@@ -642,36 +642,19 @@ function ReportUploadModal({
         throw new Error('User not authenticated');
       }
 
-      // Read the file data from the URI using FileSystem (React Native compatible)
+      // Read the file data from the URI
       console.log('Reading file from URI:', selectedFile.uri);
-      
-      // Read file as base64 using FileSystem
-      const base64Data = await FileSystem.readAsStringAsync(selectedFile.uri, {
-        encoding: 'base64',
-      });
-      
-      console.log('File read successfully, base64 length:', base64Data.length);
-      
-      // Validate the data
-      if (!base64Data || base64Data.length < 100) {
-        throw new Error('PDF file is too small or empty');
-      }
-      
-      // Convert base64 to Uint8Array for upload (React Native compatible)
-      const binaryData = new Uint8Array(
-        atob(base64Data).split('').map(char => char.charCodeAt(0))
-      );
-      
-      console.log('Binary data prepared, size:', binaryData.length);
+      const response = await fetch(selectedFile.uri);
+      const blob = await response.blob();
+      console.log('File blob created, size:', blob.size);
       
       // Upload to Supabase Storage - using 'reports' bucket
       // File path structure: profiles/{profile_id}/health-reports/{record_id}/{filename}
       const filePath = `profiles/${record.profile_id}/health-reports/${record.id}/${selectedFile.name}`;
       console.log('Uploading to path:', filePath);
-      
       const { data, error } = await supabase.storage
         .from('reports')
-        .upload(filePath, binaryData, {
+        .upload(filePath, blob, {
           contentType: 'application/pdf',
         });
 
