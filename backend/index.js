@@ -55,15 +55,17 @@ console.log('⚠️  Health endpoint temporarily disabled for testing');
 // Load synchronously so Railway doesn't kill container during async loading
 console.log('Loading API routes...');
 
-try {
-  const aiChatRouter = require('./api/ai-chat');
-  app.use(aiChatRouter);
-  console.log('✓ AI Chat route loaded');
-} catch (error) {
-  console.error('❌ Error loading AI Chat route:', error.message);
-  console.error('Stack:', error.stack);
-  // Continue - health endpoint will still work
-}
+// TEMPORARILY DISABLED - Testing if AI Chat is causing issues
+// try {
+//   const aiChatRouter = require('./api/ai-chat');
+//   app.use(aiChatRouter);
+//   console.log('✓ AI Chat route loaded');
+// } catch (error) {
+//   console.error('❌ Error loading AI Chat route:', error.message);
+//   console.error('Stack:', error.stack);
+//   // Continue - health endpoint will still work
+// }
+console.log('⚠️  AI Chat route temporarily disabled for testing');
 
 // TEMPORARILY DISABLED - Testing if servePDF is causing issues
 // try {
