@@ -10,11 +10,16 @@ const jwt = require('jsonwebtoken');
 // Wrap all endpoint registrations in a function that takes 'app' as an argument
 
 module.exports = (app) => {
-  // Initialize Supabase client via centralized helper
-  const supabase = getSupabase();
-
   // POST /api/ocr/medication - Enhanced single medication OCR
   app.post('/api/ocr/medication', async (req, res) => {
+    // Initialize Supabase client lazily (only when request comes in)
+    let supabase;
+    try {
+      supabase = getSupabase();
+    } catch (e) {
+      console.error('Failed to initialize Supabase:', e);
+      return res.status(500).json({ error: 'Server configuration error' });
+    }
     const { image, user_id, profile_id } = req.body;
     console.log('Received /api/ocr/medication request');
     console.log('user_id:', user_id);
@@ -111,6 +116,15 @@ module.exports = (app) => {
 
   // POST /api/medications/manual
   app.post('/api/medications/manual', async (req, res) => {
+    // Initialize Supabase client lazily
+    let supabase;
+    try {
+      supabase = getSupabase();
+    } catch (e) {
+      console.error('Failed to initialize Supabase:', e);
+      return res.status(500).json({ error: 'Server configuration error' });
+    }
+    
     const { name, dosage, frequency, days_remaining, user_id, profile_id } = req.body;
     // Token verification
     const authHeader = req.headers['authorization'];

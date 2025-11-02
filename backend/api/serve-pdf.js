@@ -2,12 +2,12 @@ const { getSupabase } = require('../supabaseClient');
 const express = require('express');
 const router = express.Router();
 
-// Initialize Supabase via centralized client
-const supabase = getSupabase();
-
 // Serve PDF endpoint
 router.get('/:recordId', async (req, res) => {
   try {
+    // Initialize Supabase client lazily (only when request comes in)
+    const supabase = getSupabase();
+    
     const { recordId } = req.params;
     const { authorization } = req.headers;
 
