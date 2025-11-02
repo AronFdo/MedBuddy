@@ -40,7 +40,32 @@ const BODY_SIZE_LIMIT = process.env.BODY_SIZE_LIMIT || '10mb';
 app.use(express.json({ limit: BODY_SIZE_LIMIT }));
 app.use(express.urlencoded({ limit: BODY_SIZE_LIMIT, extended: true }));
 
-// Register routes with error handling
+// Root endpoint - Railway often checks this (register early)
+app.get('/', (req, res) => {
+  res.json({ 
+    status: 'OK',
+    service: 'MedBuddy Backend API',
+    timestamp: new Date().toISOString()
+  });
+});
+
+// Health check endpoint - Railway uses this for health checks (register early)
+app.get('/health', (req, res) => {
+  const hasSupabase = !!process.env.SUPABASE_URL;
+  res.status(200).json({ 
+    status: hasSupabase ? 'OK' : 'WARNING',
+    timestamp: new Date().toISOString(),
+    supabaseConfigured: hasSupabase,
+    uptime: process.uptime()
+  });
+});
+
+// Keep-alive endpoint
+app.get('/ping', (req, res) => {
+  res.status(200).json({ status: 'pong', timestamp: new Date().toISOString() });
+});
+
+// Register routes with error handling (after health checks)
 try {
   console.log('Loading API routes...');
   
@@ -60,16 +85,6 @@ try {
   // Continue startup to show health endpoint with error status
 }
 
-// Health check endpoint
-app.get('/health', (req, res) => {
-  const hasSupabase = !!process.env.SUPABASE_URL;
-  res.json({ 
-    status: hasSupabase ? 'OK' : 'WARNING',
-    timestamp: new Date().toISOString(),
-    supabaseConfigured: hasSupabase
-  });
-});
-
 // Error handling middleware
 app.use((err, req, res, next) => {
   console.error('Unhandled error:', err);
@@ -86,10 +101,17 @@ app.use((req, res) => {
 const PORT = process.env.PORT || 3001;
 
 // Start server with error handling
-const server = app.listen(PORT, () => {
+const server = app.listen(PORT, '0.0.0.0', () => {
   console.log(`✓ Server running on port ${PORT}`);
-  console.log(`✓ Health check available at http://localhost:${PORT}/health`);
+  console.log(`✓ Health check available at http://0.0.0.0:${PORT}/health`);
+  console.log(`✓ Root endpoint available at http://0.0.0.0:${PORT}/`);
+  console.log(`✓ Server is ready to accept connections`);
 });
+
+// Keep the process alive
+setInterval(() => {
+  // This keeps the event loop active
+}, 30000); // Every 30 seconds
 
 server.on('error', (error) => {
   console.error('❌ Server error:', error);
@@ -103,12 +125,16 @@ server.on('error', (error) => {
 process.on('uncaughtException', (error) => {
   console.error('❌ Uncaught Exception:', error);
   console.error('Stack:', error.stack);
-  process.exit(1);
+  // Give time for logs to flush before exiting
+  setTimeout(() => {
+    process.exit(1);
+  }, 1000);
 });
 
 // Handle unhandled promise rejections
 process.on('unhandledRejection', (reason, promise) => {
   console.error('❌ Unhandled Rejection at:', promise);
   console.error('Reason:', reason);
-  process.exit(1);
+  // Log but don't exit immediately - allow server to continue if possible
+  console.error('⚠️  Continuing despite unhandled rejection - check for issues');
 });
