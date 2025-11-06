@@ -353,20 +353,51 @@ export default function Chat() {
         throw new Error('User not authenticated');
       }
 
+      // Build request URL and payload
+      const apiUrl = `${BACKEND_URL}/api/ai-chat`;
+      const requestPayload = { 
+        user_id: user.id, 
+        profile_id: profile.id,
+        message: messageText 
+      };
+
+      // Log request details for debugging
+      console.log('=== AI Chat Request ===');
+      console.log('Backend URL:', BACKEND_URL);
+      console.log('Full API URL:', apiUrl);
+      console.log('Request Method: POST');
+      console.log('Request Payload:', {
+        user_id: requestPayload.user_id,
+        profile_id: requestPayload.profile_id,
+        message_length: requestPayload.message.length
+      });
+      console.log('========================');
+
       // Send to AI backend
-              const res = await fetch(`${BACKEND_URL}/api/ai-chat`, {
+      const res = await fetch(apiUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          user_id: user.id, 
-          profile_id: profile.id,
-          message: messageText 
-        }),
+        body: JSON.stringify(requestPayload),
       });
 
+      // Log response details
+      console.log('=== AI Chat Response ===');
+      console.log('Status:', res.status);
+      console.log('Status Text:', res.statusText);
+      console.log('Response OK:', res.ok);
+      console.log('========================');
+
+      if (!res.ok) {
+        const errorText = await res.text();
+        console.error('API Error Response:', errorText);
+        throw new Error(`API request failed: ${res.status} ${res.statusText}`);
+      }
+
       const json = await res.json();
+      console.log('Response Data:', { hasResponse: !!json.response, responseLength: json.response?.length || 0 });
       
       if (json.error) {
+        console.error('API returned error:', json.error);
         throw new Error(json.error);
       }
 
@@ -409,7 +440,16 @@ export default function Chat() {
         }
 
     } catch (error) {
+      console.error('=== AI Chat Error ===');
       console.error('Error sending message:', error);
+      console.error('Error message:', error instanceof Error ? error.message : String(error));
+      console.error('Backend URL used:', BACKEND_URL);
+      console.error('Full API URL:', `${BACKEND_URL}/api/ai-chat`);
+      if (error instanceof TypeError && error.message.includes('fetch')) {
+        console.error('Network error - Check if backend URL is correct and accessible');
+        console.error('Troubleshooting: Verify BACKEND_URL in lib/config.ts');
+      }
+      console.error('=====================');
       
       // Add error message
       const errorMessage: ChatMessage = {
@@ -468,6 +508,14 @@ export default function Chat() {
       ]
     );
   };
+
+  // Log backend URL configuration on mount
+  useEffect(() => {
+    console.log('=== Chat Component Initialized ===');
+    console.log('Backend URL configured:', BACKEND_URL);
+    console.log('Environment:', __DEV__ ? 'development' : 'production');
+    console.log('===================================');
+  }, []);
 
   // Load conversations on mount and when profile changes
   useEffect(() => {
