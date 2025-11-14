@@ -1,0 +1,47 @@
+# Cloud Build configuration for automated deployments
+# Usage: gcloud builds submit --config cloudbuild.yaml
+# Note: $PROJECT_ID is automatically set by Cloud Build, but you can override with --substitutions
+
+substitutions:
+  _PROJECT_ID: 'arctic-joy-455408-v6'
+
+steps:
+  # Build the container image
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['build', '-t', 'gcr.io/${_PROJECT_ID}/medbuddy-backend:$COMMIT_SHA', '-t', 'gcr.io/${_PROJECT_ID}/medbuddy-backend:latest', '.']
+  
+  # Push the container image to Container Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', 'gcr.io/${_PROJECT_ID}/medbuddy-backend:$COMMIT_SHA']
+  
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', 'gcr.io/${_PROJECT_ID}/medbuddy-backend:latest']
+  
+  # Deploy container image to Cloud Run
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: gcloud
+    args:
+      - 'run'
+      - 'deploy'
+      - 'medbuddy-backend'
+      - '--image'
+      - 'gcr.io/${_PROJECT_ID}/medbuddy-backend:$COMMIT_SHA'
+      - '--region'
+      - 'asia-south1'
+      - '--platform'
+      - 'managed'
+      - '--allow-unauthenticated'
+      # Add other Cloud Run settings as needed:
+      # - '--memory'
+      # - '512Mi'
+      # - '--cpu'
+      # - '1'
+      # - '--min-instances'
+      # - '0'
+      # - '--max-instances'
+      # - '10'
+
+images:
+  - 'gcr.io/${_PROJECT_ID}/medbuddy-backend:$COMMIT_SHA'
+  - 'gcr.io/${_PROJECT_ID}/medbuddy-backend:latest'
+

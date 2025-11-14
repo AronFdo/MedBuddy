@@ -61,9 +61,17 @@ module.exports = (app) => {
     }
     
     try {
+      // Check if OpenAI API key is configured
+      if (!process.env.OPENAI_API_KEY) {
+        console.error('OPENAI_API_KEY is not set');
+        return res.status(500).json({ error: 'OCR service configuration error' });
+      }
+
       // OpenAI expects image as a URL, so we use data URL
       const base64Url = image.startsWith('data:') ? image : `data:image/jpeg;base64,${image}`;
-      console.log('Calling OpenAI Vision API...');
+      if (process.env.NODE_ENV !== 'production') {
+        console.log('Calling OpenAI Vision API...');
+      }
       const medInfo = await extractMedicationFromImage(base64Url);
       console.log('OpenAI response (parsed medInfo):', medInfo);
       
@@ -116,6 +124,13 @@ module.exports = (app) => {
   // POST /api/medications/manual
   app.post('/api/medications/manual', async (req, res) => {
     const { name, dosage, frequency, days_remaining, user_id, profile_id } = req.body;
+    
+    // Check JWT secret is configured
+    if (!process.env.SUPABASE_JWT_SECRET) {
+      console.error('SUPABASE_JWT_SECRET is not set');
+      return res.status(500).json({ error: 'Authentication service configuration error' });
+    }
+
     // Token verification
     const authHeader = req.headers['authorization'];
     if (!authHeader) return res.status(401).json({ error: 'Missing Authorization header' });

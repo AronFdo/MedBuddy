@@ -10,16 +10,15 @@ if (process.env.NODE_ENV !== 'production') {
 }
 
 // Validate required environment variables at startup
-console.log('Starting MedBuddy Backend...');
-console.log('NODE_ENV:', process.env.NODE_ENV || 'not set');
-console.log('PORT:', process.env.PORT || 'not set (will use 3001)');
+console.log('Starting MedBuddy Backend API...');
+console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
 
-const requiredEnvVars = ['SUPABASE_URL'];
+const requiredEnvVars = ['https://qepwahqrjcfbxuiurgjc.supabase.co'];
 const missingVars = requiredEnvVars.filter(v => !process.env[v]);
 
 if (missingVars.length > 0) {
-  console.error('❌ Missing required environment variables:', missingVars.join(', '));
-  console.error('Please ensure all required environment variables are set in Railway.');
+  console.error('Missing required environment variables:', missingVars.join(', '));
+  console.error('Please ensure all required environment variables are set.');
   // Don't crash immediately - let it attempt to start and fail gracefully
 }
 
@@ -40,7 +39,7 @@ const BODY_SIZE_LIMIT = process.env.BODY_SIZE_LIMIT || '10mb';
 app.use(express.json({ limit: BODY_SIZE_LIMIT }));
 app.use(express.urlencoded({ limit: BODY_SIZE_LIMIT, extended: true }));
 
-// Simple health check endpoints (Railway just checks if port responds, but these are useful for debugging)
+// Simple health check endpoints
 app.get('/', (req, res) => {
   res.json({ status: 'OK', service: 'MedBuddy Backend API' });
 });
@@ -50,39 +49,36 @@ app.get('/health', (req, res) => {
 });
 
 // Register routes with error handling (after health checks)
-// Load synchronously so Railway doesn't kill container during async loading
-console.log('Loading API routes...');
+let routesLoaded = 0;
+const totalRoutes = 3;
 
 try {
   const aiChatRouter = require('./api/ai-chat');
   app.use(aiChatRouter);
-  console.log('✓ AI Chat route loaded');
+  routesLoaded++;
 } catch (error) {
-  console.error('❌ Error loading AI Chat route:', error.message);
-  console.error('Stack:', error.stack);
+  console.error('Error loading AI Chat route:', error.message);
   // Continue - health endpoint will still work
 }
 
 try {
   const servePdfRouter = require('./api/serve-pdf');
   app.use('/api/serve-pdf', servePdfRouter);
-  console.log('✓ Serve PDF route loaded');
+  routesLoaded++;
 } catch (error) {
-  console.error('❌ Error loading Serve PDF route:', error.message);
-  console.error('Stack:', error.stack);
+  console.error('Error loading Serve PDF route:', error.message);
   // Continue - health endpoint will still work
 }
 
 try {
   require('./api/ocr')(app);
-  console.log('✓ OCR routes loaded');
+  routesLoaded++;
 } catch (error) {
-  console.error('❌ Error loading OCR routes:', error.message);
-  console.error('Stack:', error.stack);
+  console.error('Error loading OCR routes:', error.message);
   // Continue - health endpoint will still work
 }
 
-console.log('✓ All routes loaded (or failed gracefully)');
+console.log(`Loaded ${routesLoaded}/${totalRoutes} API route modules`);
 
 // Error handling middleware
 app.use((err, req, res, next) => {
@@ -95,36 +91,36 @@ app.use((req, res) => {
   res.status(404).json({ error: 'Route not found', path: req.path });
 });
 
-// ... other routes
-
 const PORT = process.env.PORT || 8080;
 
 // Start server with error handling
 let server;
 try {
   server = app.listen(PORT, '0.0.0.0', () => {
-    console.log(`✓ Server running on port ${PORT}`);
-    console.log(`✓ Server ready to accept connections`);
-    console.log(`✓ Process PID: ${process.pid}`);
-    console.log(`✓ Uptime: ${process.uptime()}s`);
+    console.log('═══════════════════════════════════════════════════════');
+    console.log('MedBuddy Backend API Container Ready');
+    console.log(`Listening on port ${PORT} (0.0.0.0)`);
+    console.log(`Health check: http://0.0.0.0:${PORT}/health`);
+    console.log(`PID: ${process.pid}`);
+    console.log('═══════════════════════════════════════════════════════');
   });
 } catch (error) {
-  console.error('❌ Failed to start server:', error);
+  console.error('Failed to start server:', error.message);
   process.exit(1);
 }
 
-// Handle graceful shutdown (Railway sends SIGTERM)
+// Handle graceful shutdown (Cloud Run sends SIGTERM)
 process.on('SIGTERM', () => {
-  console.log('⚠️  Received SIGTERM signal - Railway is stopping container');
-  console.log(`⚠️  Uptime before shutdown: ${process.uptime()}s`);
+  const uptime = Math.floor(process.uptime());
+  console.log(`\nSIGTERM received - Graceful shutdown initiated (uptime: ${uptime}s)`);
   if (server) {
     server.close(() => {
-      console.log('✓ Server closed gracefully');
+      console.log('Server closed successfully');
       process.exit(0);
     });
     // Force exit after 5 seconds if close doesn't complete
     setTimeout(() => {
-      console.log('⚠️  Force exiting after timeout');
+      console.log('Force exiting after timeout');
       process.exit(0);
     }, 5000);
   } else {
@@ -133,9 +129,10 @@ process.on('SIGTERM', () => {
 });
 
 process.on('SIGINT', () => {
-  console.log('⚠️  Received SIGINT, shutting down...');
+  console.log('\nSIGINT received - Shutting down...');
   if (server) {
     server.close(() => {
+      console.log('Server closed');
       process.exit(0);
     });
   } else {
@@ -144,7 +141,7 @@ process.on('SIGINT', () => {
 });
 
 server.on('error', (error) => {
-  console.error('❌ Server error:', error);
+  console.error('Server error:', error);
   console.error('Error code:', error.code);
   if (error.code === 'EADDRINUSE') {
     console.error(`Port ${PORT} is already in use`);
@@ -154,20 +151,20 @@ server.on('error', (error) => {
 
 // Handle uncaught exceptions - but don't exit immediately
 process.on('uncaughtException', (error) => {
-  console.error('❌ Uncaught Exception:', error);
+  console.error('Uncaught Exception:', error);
   console.error('Stack:', error.stack);
-  console.error('⚠️  Process will exit in 2 seconds...');
+  console.error('Process will exit in 2 seconds...');
   // Give time for logs to flush before exiting
   setTimeout(() => {
-    console.error('❌ Exiting due to uncaught exception');
+    console.error('Exiting due to uncaught exception');
     process.exit(1);
   }, 2000);
 });
 
 // Handle unhandled promise rejections - log but don't exit
 process.on('unhandledRejection', (reason, promise) => {
-  console.error('❌ Unhandled Rejection detected');
+  console.error('Unhandled Rejection detected');
   console.error('Reason:', reason);
   console.error('Promise:', promise);
-  console.error('⚠️  Continuing despite unhandled rejection');
+  console.error('Continuing despite unhandled rejection');
 });

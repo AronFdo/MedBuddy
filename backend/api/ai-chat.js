@@ -73,6 +73,12 @@ The user asks: ${message}
 `;
 
   // 3. Call OpenAI (or other LLM)
+  const openaiApiKey = process.env.OPENAI_API_KEY;
+  if (!openaiApiKey) {
+    console.error('OPENAI_API_KEY is not set');
+    return res.status(500).json({ error: 'AI service configuration error' });
+  }
+
   try {
     const openaiRes = await axios.post(
       'https://api.openai.com/v1/chat/completions',
@@ -86,7 +92,7 @@ The user asks: ${message}
       },
       {
         headers: {
-          'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
+          'Authorization': `Bearer ${openaiApiKey}`,
           'Content-Type': 'application/json',
         },
       }
@@ -104,7 +110,9 @@ The user asks: ${message}
     
     res.json({ response: aiResponse });
   } catch (err) {
-    res.status(500).json({ error: 'AI model error', details: err.message });
+    console.error('OpenAI API error:', err.response?.data || err.message);
+    const errorMessage = err.response?.data?.error?.message || err.message || 'AI service unavailable';
+    res.status(500).json({ error: 'AI model error', details: errorMessage });
   }
 });
 

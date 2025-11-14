@@ -21,15 +21,11 @@ if (process.env.NODE_ENV !== 'production') {
 let cachedClient = null;
 
 function getSupabase() {
-
-  console.log("SUPABASE_URL:", process.env.SUPABASE_URL);
-  console.log("SUPABASE_SERVICE_ROLE_KEY:", !!process.env.SUPABASE_SERVICE_ROLE_KEY);
-  console.log("SUPABASE_ANON_KEY:", !!process.env.SUPABASE_ANON_KEY);
-
   if (cachedClient) return cachedClient;
 
   const supabaseUrl = process.env.SUPABASE_URL;
   const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY;
+  
   if (!supabaseUrl) {
     throw new Error('Missing SUPABASE_URL environment variable');
   }
@@ -37,9 +33,13 @@ function getSupabase() {
     throw new Error('Missing SUPABASE_SERVICE_ROLE_KEY (or SUPABASE_ANON_KEY) environment variable');
   }
 
-  console.log("SUPABASE_URL:", process.env.SUPABASE_URL);
-  console.log("SUPABASE_SERVICE_ROLE_KEY:", !!process.env.SUPABASE_SERVICE_ROLE_KEY);
-  console.log("SUPABASE_ANON_KEY:", !!process.env.SUPABASE_ANON_KEY);
+  // Only log in development for security
+  if (process.env.NODE_ENV !== 'production') {
+    console.log('✓ Supabase client initialized');
+    console.log(`  URL: ${supabaseUrl}`);
+    console.log(`  Using: ${process.env.SUPABASE_SERVICE_ROLE_KEY ? 'SERVICE_ROLE_KEY' : 'ANON_KEY'}`);
+  }
+
   cachedClient = createClient(supabaseUrl, supabaseKey);
   return cachedClient;
 }
