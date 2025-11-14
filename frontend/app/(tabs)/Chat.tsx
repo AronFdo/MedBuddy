@@ -7,7 +7,7 @@ import { useRouter } from 'expo-router';
 import { BACKEND_URL } from '../../lib/config';
 
 const COLORS = {
-  primary: '#307351',
+  primary: '#25D366',
   secondary: '#7BE0AD',
   white: '#FFFFFF',
   gray: '#6B7280',
@@ -19,6 +19,10 @@ const COLORS = {
   darkGray: '#374151',
   sidebarBg: '#F8FAFC',
 };
+
+const TEXT_COLOR = '#011A05';
+const LIGHT_BACKGROUND = 'rgba(240, 249, 244, 0.95)';
+const SHADOW_COLOR = '#25D366';
 
 // Chat Conversation Interface
 interface ChatMessage {
@@ -72,7 +76,7 @@ function ChatHistoryItem({
         <Ionicons 
           name="chatbubbles-outline" 
           size={20} 
-          color={isActive ? COLORS.primary : COLORS.gray} 
+          color={TEXT_COLOR} 
         />
         <View style={styles.chatHistoryText}>
           <Text style={[styles.chatHistoryTitle, isActive && styles.activeChatHistoryTitle]}>
@@ -84,7 +88,7 @@ function ChatHistoryItem({
         </View>
       </View>
       {isActive && (
-        <Ionicons name="checkmark-circle" size={16} color={COLORS.primary} />
+        <Ionicons name="checkmark-circle" size={16} color={TEXT_COLOR} />
       )}
     </TouchableOpacity>
   );
@@ -115,10 +119,10 @@ function ChatSidebar({
             <Text style={styles.sidebarTitle}>Chat History</Text>
             <View style={styles.sidebarHeaderButtons}>
               <TouchableOpacity onPress={onNewChat} style={styles.sidebarNewChatButton}>
-                <Ionicons name="add" size={24} color={COLORS.primary} />
+                <Ionicons name="add" size={24} color={TEXT_COLOR} />
               </TouchableOpacity>
               <TouchableOpacity onPress={onClose} style={styles.sidebarCloseButton}>
-                <Ionicons name="close" size={24} color={COLORS.gray} />
+                <Ionicons name="close" size={24} color={TEXT_COLOR} />
               </TouchableOpacity>
             </View>
           </View>
@@ -136,7 +140,7 @@ function ChatSidebar({
             )}
             ListEmptyComponent={
               <View style={styles.emptyHistory}>
-                <Ionicons name="chatbubbles-outline" size={48} color={COLORS.gray} />
+                <Ionicons name="chatbubbles-outline" size={48} color={TEXT_COLOR} />
                 <Text style={styles.emptyHistoryText}>No conversations yet</Text>
                 <Text style={styles.emptyHistorySubtext}>Start a new chat to begin</Text>
               </View>
@@ -206,7 +210,7 @@ function ChatInput({
       <TextInput
         style={styles.chatInput}
         placeholder="Ask MedBuddy anything..."
-        placeholderTextColor={COLORS.gray}
+        placeholderTextColor={TEXT_COLOR}
         value={input}
         onChangeText={setInput}
         editable={!loading && !disabled}
@@ -768,21 +772,21 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.primary,
   },
   botMessageBubble: {
-    backgroundColor: COLORS.lightGray,
+    backgroundColor: LIGHT_BACKGROUND,
   },
   messageText: {
     fontSize: 16,
     lineHeight: 22,
   },
   userMessageText: {
-    color: COLORS.white,
+    color: TEXT_COLOR,
   },
   botMessageText: {
-    color: COLORS.darkGray,
+    color: TEXT_COLOR,
   },
   messageTime: {
     fontSize: 12,
-    color: COLORS.gray,
+    color: TEXT_COLOR,
     marginTop: 4,
     opacity: 0.7,
   },
@@ -796,7 +800,7 @@ const styles = StyleSheet.create({
   },
   chatInput: {
     flex: 1,
-    backgroundColor: COLORS.lightGray,
+    backgroundColor: LIGHT_BACKGROUND,
     borderRadius: 20,
     paddingHorizontal: 16,
     paddingVertical: 12,
@@ -825,7 +829,7 @@ const styles = StyleSheet.create({
     left: 0,
     bottom: 0,
     width: '80%',
-    backgroundColor: COLORS.sidebarBg,
+    backgroundColor: LIGHT_BACKGROUND,
     borderTopRightRadius: 24,
     borderBottomRightRadius: 24,
     shadowColor: COLORS.primary,
@@ -866,18 +870,26 @@ const styles = StyleSheet.create({
   },
   chatHistoryList: {
     flex: 1,
+    padding: 16,
   },
   chatHistoryItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.lightGray,
+    backgroundColor: LIGHT_BACKGROUND,
+    borderRadius: 16,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    marginBottom: 12,
+    shadowColor: SHADOW_COLOR,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 12,
+    elevation: 4,
   },
   activeChatHistoryItem: {
-    backgroundColor: COLORS.primary + '10',
-    borderLeftWidth: 4,
-    borderLeftColor: COLORS.primary,
+    backgroundColor: COLORS.white,
+    borderWidth: 1,
+    borderColor: TEXT_COLOR + '30',
   },
   chatHistoryContent: {
     flex: 1,
@@ -891,15 +903,15 @@ const styles = StyleSheet.create({
   chatHistoryTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: COLORS.darkGray,
+    color: TEXT_COLOR,
     marginBottom: 2,
   },
   activeChatHistoryTitle: {
-    color: COLORS.primary,
+    color: TEXT_COLOR,
   },
   chatHistoryDate: {
     fontSize: 12,
-    color: COLORS.gray,
+    color: TEXT_COLOR,
   },
   emptyHistory: {
     flex: 1,
@@ -910,13 +922,13 @@ const styles = StyleSheet.create({
   emptyHistoryText: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: COLORS.gray,
+    color: TEXT_COLOR,
     marginTop: 16,
     marginBottom: 8,
   },
   emptyHistorySubtext: {
     fontSize: 14,
-    color: COLORS.gray,
+    color: TEXT_COLOR,
     textAlign: 'center',
   },
 }); 

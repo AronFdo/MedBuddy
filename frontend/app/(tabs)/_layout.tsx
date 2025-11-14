@@ -14,7 +14,17 @@ export default function TabLayout() {
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: '#307351', // Force active color to be green
+        tabBarActiveTintColor: '#25D366',
+        tabBarInactiveTintColor: '#011A05',
+        tabBarStyle: {
+          paddingTop: 20,
+          height: 100,
+          backgroundColor: 'rgba(240, 249, 244, 0.95)',
+        },
+        tabBarItemStyle: {
+          justifyContent: 'center',
+          alignItems: 'center',
+        },
         headerShown: false,
       }}>
       <Tabs.Screen
@@ -77,7 +87,19 @@ export default function TabLayout() {
                 />
               </View>
             ) : (
-              <Ionicons name={focused ? 'person' : 'person-outline'} color={color} size={28} />
+              <View style={{
+                width: 28,
+                height: 28,
+                borderRadius: 14,
+                justifyContent: 'center',
+                alignItems: 'center',
+              }}>
+                <Ionicons
+                  name={focused ? 'person' : 'person-outline'}
+                  color={focused ? '#25D366' : '#011A05'}
+                  size={22}
+                />
+              </View>
             )
           ),
         }}

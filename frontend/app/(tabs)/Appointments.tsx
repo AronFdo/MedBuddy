@@ -14,13 +14,14 @@ import { notificationService } from '../../lib/notificationService';
 
 
 const COLORS = {
-  primary: '#307351',
+  primary: '#25D366',
   secondary: '#7BE0AD',
   white: '#FFFFFF',
   gray: '#6B7280',
   lightGray: '#F3F4F6',
   error: '#EF4444',
   success: '#10B981',
+  text: '#011A05',
 };
 
 function CustomHeader({ title, onDownloadedReportsPress }: { title: string; onDownloadedReportsPress?: () => void }) {
@@ -104,7 +105,7 @@ function AddAppointmentModalForm({ onSuccess, onCancel, profileId }: { onSuccess
       <View style={modalStyles.rowInput}>
         <View style={modalStyles.halfInput}>
           <TouchableOpacity style={modalStyles.halfInputField} onPress={() => setShowDatePicker(true)}>
-            <Text style={{ color: date ? COLORS.primary : COLORS.gray }}>
+            <Text style={{ color: COLORS.text }}>
               {date ? date.toDateString() : 'Select Date'}
             </Text>
           </TouchableOpacity>
@@ -122,7 +123,7 @@ function AddAppointmentModalForm({ onSuccess, onCancel, profileId }: { onSuccess
         </View>
         <View style={modalStyles.halfInput}>
           <TouchableOpacity style={modalStyles.halfInputField} onPress={() => setShowTimePicker(true)}>
-            <Text style={{ color: time ? COLORS.primary : COLORS.gray }}>
+            <Text style={{ color: COLORS.text }}>
               {time ? time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Select Time (optional)'}
             </Text>
           </TouchableOpacity>
@@ -477,7 +478,7 @@ function HealthRecordForm({
         style={[modalStyles.input, { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }]} 
         onPress={() => setShowTypePicker(true)}
       >
-        <Text style={{ color: recordType ? COLORS.primary : COLORS.gray, flex: 1 }}>
+        <Text style={{ color: COLORS.text, flex: 1 }}>
           {recordType || 'Select Record Type'}
             </Text>
         <Ionicons name="chevron-down" size={20} color={COLORS.gray} />
@@ -485,8 +486,8 @@ function HealthRecordForm({
 
       {showTypePicker && (
         <Modal visible={showTypePicker} animationType="fade" transparent>
-          <View style={styles.modalOverlay}>
-            <View style={[styles.modalContent, { height: 320, padding: 20 }]}>
+          <View style={modalStyles.overlay}>
+            <View style={[modalStyles.container, { height: 320, padding: 20 }]}>
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
                 <Text style={modalStyles.header}>Select Record Type</Text>
                 <TouchableOpacity onPress={() => setShowTypePicker(false)}>
@@ -519,7 +520,7 @@ function HealthRecordForm({
                     }}
                   >
                     <Text style={{ 
-                      color: recordType === type ? COLORS.white : COLORS.primary,
+                      color: recordType === type ? COLORS.white : COLORS.text,
                       fontWeight: recordType === type ? 'bold' : 'normal',
                       fontSize: 16
                     }}>
@@ -544,7 +545,7 @@ function HealthRecordForm({
       >
         <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
           <Ionicons name="calendar-outline" size={18} color={COLORS.primary} style={{ marginRight: 8 }} />
-          <Text style={{ color: eventDate ? COLORS.primary : COLORS.gray, fontSize: 16 }}>
+          <Text style={{ color: COLORS.text, fontSize: 16 }}>
             {eventDate ? eventDate.toDateString() : 'Select Event Date'}
           </Text>
         </View>
@@ -766,7 +767,7 @@ function ReportUploadModal({
 
 const modalStyles = StyleSheet.create({
   container: {
-    backgroundColor: COLORS.white,
+    backgroundColor: 'rgba(240, 249, 244, 1)',
     borderRadius: 24,
     padding: 24,
     paddingBottom: 40,
@@ -775,9 +776,12 @@ const modalStyles = StyleSheet.create({
     width: '100%',
     alignSelf: 'center',
     shadowColor: COLORS.primary,
-    shadowOpacity: 0.3,
-    shadowRadius: 20,
-    elevation: 12,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 12,
+    elevation: 4,
+    borderWidth: 1,
+    borderColor: 'rgba(37, 211, 102, 0.15)',
   },
   overlay: {
     flex: 1,
@@ -789,7 +793,7 @@ const modalStyles = StyleSheet.create({
   header: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: COLORS.primary,
+    color: COLORS.text,
     textAlign: 'center',
     marginBottom: 18,
     marginTop: 12,
@@ -797,7 +801,7 @@ const modalStyles = StyleSheet.create({
   label: {
     fontSize: 16,
     fontWeight: '600',
-    color: COLORS.primary,
+    color: COLORS.text,
     marginBottom: 8,
     marginTop: 4,
   },
@@ -809,7 +813,8 @@ const modalStyles = StyleSheet.create({
     paddingHorizontal: 16,
     marginBottom: 16,
     fontSize: 16,
-    backgroundColor: COLORS.lightGray,
+    backgroundColor: COLORS.white,
+    color: COLORS.text,
   },
   rowInput: {
     flexDirection: 'row',
@@ -827,7 +832,7 @@ const modalStyles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 16,
     fontSize: 16,
-    backgroundColor: COLORS.lightGray,
+    backgroundColor: COLORS.white,
   },
   saveButton: {
     backgroundColor: COLORS.primary,
@@ -1415,7 +1420,7 @@ export default function Appointments() {
             }}
             disabled={!profile}
           >
-            <Ionicons name="add-circle-outline" size={24} color={COLORS.primary} />
+            <Ionicons name="add-circle-outline" size={24} color={COLORS.white} />
             <Text style={styles.actionText}>
               {profile ? 'Add Appointment' : 'No Profile Selected'}
             </Text>
@@ -1432,7 +1437,7 @@ export default function Appointments() {
             }}
             disabled={!profile}
           >
-            <Ionicons name="add-circle-outline" size={24} color={COLORS.primary} />
+            <Ionicons name="add-circle-outline" size={24} color={COLORS.white} />
             <Text style={styles.actionText}>
               {profile ? 'Add Health Record' : 'No Profile Selected'}
             </Text>
@@ -1597,7 +1602,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.primary,
   },
   tabButtonText: {
-    color: COLORS.gray,
+    color: COLORS.text,
     fontWeight: 'bold',
     fontSize: 16,
   },
@@ -1625,7 +1630,7 @@ const styles = StyleSheet.create({
   },
   appointmentDoctor: {
     fontSize: 17,
-    color: COLORS.primary,
+    color: COLORS.text,
     fontWeight: 'bold',
     marginBottom: 2,
   },
@@ -1683,11 +1688,12 @@ const styles = StyleSheet.create({
   actionButtonVertical: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: COLORS.lightGray,
+    backgroundColor: COLORS.primary,
     borderRadius: 12,
     paddingVertical: 12,
     paddingHorizontal: 24,
     marginVertical: 6,
+    marginBottom: 20,
     width: 220,
     justifyContent: 'center',
     shadowColor: COLORS.primary,
@@ -1698,7 +1704,7 @@ const styles = StyleSheet.create({
   actionText: {
     marginLeft: 6,
     fontSize: 16,
-    color: COLORS.primary,
+    color: COLORS.white,
     fontWeight: 'bold',
   },
   modalOverlay: {
@@ -1776,7 +1782,7 @@ const styles = StyleSheet.create({
   cardTitle: {
     fontSize: 17,
     fontWeight: 'bold',
-    color: '#111827',
+    color: COLORS.text,
   },
   cardSubtitle: {
     fontSize: 15,
@@ -1786,32 +1792,5 @@ const styles = StyleSheet.create({
   cardDate: {
     fontSize: 14,
     color: COLORS.gray,
-  },
-  // Attended appointment styles
-  attendedCard: {
-    borderLeftWidth: 4,
-    borderLeftColor: COLORS.success,
-    backgroundColor: '#F0FDF4',
-  },
-  attendedBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: COLORS.success + '20',
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 12,
-    marginLeft: 8,
-  },
-  attendedText: {
-    fontSize: 12,
-    color: COLORS.success,
-    fontWeight: 'bold',
-    marginLeft: 4,
-  },
-  attendedDate: {
-    fontSize: 13,
-    color: COLORS.success,
-    fontStyle: 'italic',
-    marginTop: 4,
   },
 }); 

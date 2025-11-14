@@ -10,8 +10,9 @@ import { useProfile } from '../../lib/ProfileContext';
 import NotificationSettings from '../../components/NotificationSettings';
 
 const COLORS = {
-  primary: '#307351',
+  primary: '#25D366',
   secondary: '#7BE0AD',
+  text: '#011A05',
   white: '#FFFFFF',
   gray: '#6B7280',
   lightGray: '#F3F4F6',
@@ -40,7 +41,7 @@ function CustomHeader({ title, onSettingsPress }: { title: string; onSettingsPre
 function FloatingSettingsButton({ onPress }: { onPress: () => void }) {
   return (
     <TouchableOpacity style={styles.floatingSettingsButton} onPress={onPress}>
-      <Ionicons name="settings-outline" size={24} color={COLORS.white} />
+      <Ionicons name="settings-outline" size={24} color={COLORS.text} />
     </TouchableOpacity>
   );
 }
@@ -69,7 +70,7 @@ function ProfileSidebar({ visible, onClose, onEditProfile, onCustomize, onSwitch
           <View style={styles.sidebarHeader}>
             <Text style={styles.sidebarTitle}>Settings</Text>
             <TouchableOpacity style={styles.sidebarCloseButton} onPress={onClose}>
-              <Ionicons name="close" size={24} color={COLORS.primary} />
+              <Ionicons name="close" size={24} color={COLORS.text} />
             </TouchableOpacity>
           </View>
           
@@ -81,9 +82,9 @@ function ProfileSidebar({ visible, onClose, onEditProfile, onCustomize, onSwitch
                 onClose();
               }}
             >
-              <Ionicons name="create-outline" size={24} color={COLORS.primary} />
+              <Ionicons name="create-outline" size={24} color={COLORS.text} />
               <Text style={styles.sidebarMenuItemText}>Edit Profile</Text>
-              <Ionicons name="chevron-forward" size={20} color={COLORS.gray} />
+              <Ionicons name="chevron-forward" size={20} color={COLORS.text} />
             </TouchableOpacity>
             
             <TouchableOpacity 
@@ -93,9 +94,9 @@ function ProfileSidebar({ visible, onClose, onEditProfile, onCustomize, onSwitch
                 onClose();
               }}
             >
-              <Ionicons name="settings-outline" size={24} color={COLORS.primary} />
+              <Ionicons name="settings-outline" size={24} color={COLORS.text} />
               <Text style={styles.sidebarMenuItemText}>Customize</Text>
-              <Ionicons name="chevron-forward" size={20} color={COLORS.gray} />
+              <Ionicons name="chevron-forward" size={20} color={COLORS.text} />
             </TouchableOpacity>
             
             <TouchableOpacity 
@@ -105,9 +106,9 @@ function ProfileSidebar({ visible, onClose, onEditProfile, onCustomize, onSwitch
                 onClose();
               }}
             >
-              <Ionicons name="people-outline" size={24} color={COLORS.primary} />
+              <Ionicons name="people-outline" size={24} color={COLORS.text} />
               <Text style={styles.sidebarMenuItemText}>Switch Profile</Text>
-              <Ionicons name="chevron-forward" size={20} color={COLORS.gray} />
+              <Ionicons name="chevron-forward" size={20} color={COLORS.text} />
             </TouchableOpacity>
             
             {profile?.profile_type === 'myself' ? (
@@ -118,9 +119,9 @@ function ProfileSidebar({ visible, onClose, onEditProfile, onCustomize, onSwitch
                   onClose();
                 }}
               >
-                <Ionicons name="lock-closed-outline" size={24} color={COLORS.primary} />
+              <Ionicons name="lock-closed-outline" size={24} color={COLORS.text} />
                 <Text style={styles.sidebarMenuItemText}>Change Password</Text>
-                <Ionicons name="chevron-forward" size={20} color={COLORS.gray} />
+              <Ionicons name="chevron-forward" size={20} color={COLORS.text} />
               </TouchableOpacity>
             ) : (
               <TouchableOpacity 
@@ -176,7 +177,7 @@ function ProfileHeader({ profile }: { profile: any }) {
               />
             ) : (
               <View style={styles.avatarPlaceholder}>
-                <Ionicons name="person" size={40} color={COLORS.primary} />
+                <Ionicons name="person" size={40} color={COLORS.text} />
               </View>
             )}
           </View>
@@ -184,11 +185,11 @@ function ProfileHeader({ profile }: { profile: any }) {
             <Text style={styles.profileName}>{profile.name || 'User Name'}</Text>
             <View style={styles.profileDetailsRow}>
               <View style={styles.profileDetailItem}>
-                <Ionicons name="calendar-outline" size={16} color={COLORS.gray} />
+                <Ionicons name="calendar-outline" size={16} color={COLORS.text} />
                 <Text style={styles.profileDetail}>{profile.age ? `${profile.age} years` : 'N/A'}</Text>
               </View>
               <View style={styles.profileDetailItem}>
-                <Ionicons name="person-outline" size={16} color={COLORS.gray} />
+                <Ionicons name="person-outline" size={16} color={COLORS.text} />
                 <Text style={styles.profileDetail}>{profile.gender || 'N/A'}</Text>
               </View>
             </View>
@@ -203,7 +204,7 @@ function TimelineEvent({ item, isLast }: { item: any, isLast: boolean }) {
   return (
     <View style={styles.timelineEvent}>
       <View style={styles.timelineIcon}>
-        <Ionicons name="ellipse" size={12} color={COLORS.primary} />
+        <Ionicons name="ellipse" size={12} color={COLORS.text} />
         {!isLast && <View style={styles.timelineLine} />}
       </View>
       <View style={styles.timelineContent}>
@@ -219,7 +220,7 @@ function InfoCard({ title, data, icon }: { title: string; data: any[]; icon: any
   return (
     <View style={styles.card}>
       <View style={styles.cardHeader}>
-        <Ionicons name={icon} size={22} color={COLORS.primary} />
+        <Ionicons name={icon} size={22} color={COLORS.text} />
         <Text style={styles.cardTitle}>{title}</Text>
       </View>
       {data && data.length > 0 ? (
@@ -452,7 +453,7 @@ function CustomizeModal({ visible, onClose, profile, onSave }: { visible: boolea
           <View style={customizeStyles.modalHeader}>
             <Text style={customizeStyles.modalTitle}>Customize Settings</Text>
             <TouchableOpacity onPress={onClose} style={customizeStyles.closeButton}>
-              <Ionicons name="close" size={24} color={COLORS.gray} />
+              <Ionicons name="close" size={24} color={COLORS.text} />
             </TouchableOpacity>
           </View>
 
@@ -460,7 +461,7 @@ function CustomizeModal({ visible, onClose, profile, onSave }: { visible: boolea
             {/* Meal Times Section */}
             <View style={customizeStyles.section}>
               <View style={customizeStyles.sectionHeader}>
-                <Ionicons name="restaurant-outline" size={24} color={COLORS.primary} />
+                <Ionicons name="restaurant-outline" size={24} color={COLORS.text} />
                 <Text style={customizeStyles.sectionTitle}>Meal Times</Text>
               </View>
               <Text style={customizeStyles.sectionDescription}>
@@ -496,7 +497,7 @@ function CustomizeModal({ visible, onClose, profile, onSave }: { visible: boolea
             {/* Alarm Times Section */}
             <View style={customizeStyles.section}>
               <View style={customizeStyles.sectionHeader}>
-                <Ionicons name="alarm-outline" size={24} color={COLORS.primary} />
+                <Ionicons name="alarm-outline" size={24} color={COLORS.text} />
                 <Text style={customizeStyles.sectionTitle}>Alarm Times</Text>
               </View>
               <Text style={customizeStyles.sectionDescription}>
@@ -600,13 +601,13 @@ function CreateProfileModal({ visible, onClose, onCreated, userId }: { visible: 
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
       <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.3)', justifyContent: 'center', alignItems: 'center' }}>
-        <View style={{ backgroundColor: COLORS.white, borderRadius: 20, padding: 24, width: '85%', maxWidth: 400, shadowColor: COLORS.primary, shadowOpacity: 0.18, shadowRadius: 16, elevation: 12, position: 'relative' }}>
+        <View style={{ backgroundColor: 'rgba(240, 249, 244, 1)', borderRadius: 20, padding: 24, width: '85%', maxWidth: 400, position: 'relative' }}>
           <TouchableOpacity style={{ position: 'absolute', top: 12, right: 12, zIndex: 10, backgroundColor: COLORS.lightGray, borderRadius: 16, padding: 4 }} onPress={onClose}>
-            <Ionicons name="close" size={24} color={COLORS.primary} />
+            <Ionicons name="close" size={24} color={COLORS.text} />
           </TouchableOpacity>
-          <Text style={{ fontSize: 22, fontWeight: 'bold', marginBottom: 18, color: COLORS.primary, textAlign: 'center' }}>Create Profile</Text>
+          <Text style={{ fontSize: 22, fontWeight: 'bold', marginBottom: 18, color: COLORS.text, textAlign: 'center' }}>Create Profile</Text>
           <TextInput
-            style={{ borderWidth: 1, borderColor: COLORS.lightGray, borderRadius: 8, padding: 12, marginBottom: 12, fontSize: 16, color: COLORS.primary }}
+            style={{ borderWidth: 1, borderColor: COLORS.lightGray, borderRadius: 8, padding: 12, marginBottom: 12, fontSize: 16, color: COLORS.text, backgroundColor: COLORS.white }}
             placeholder="Name"
             placeholderTextColor={COLORS.gray}
             value={name}
@@ -614,7 +615,7 @@ function CreateProfileModal({ visible, onClose, onCreated, userId }: { visible: 
             autoCapitalize="words"
           />
           <TextInput
-            style={{ borderWidth: 1, borderColor: COLORS.lightGray, borderRadius: 8, padding: 12, marginBottom: 12, fontSize: 16, color: COLORS.primary }}
+            style={{ borderWidth: 1, borderColor: COLORS.lightGray, borderRadius: 8, padding: 12, marginBottom: 12, fontSize: 16, color: COLORS.text, backgroundColor: COLORS.white }}
             placeholder="Age"
             placeholderTextColor={COLORS.gray}
             value={age}
@@ -622,28 +623,51 @@ function CreateProfileModal({ visible, onClose, onCreated, userId }: { visible: 
             keyboardType={Platform.OS === 'ios' ? 'number-pad' : 'numeric'}
           />
           <View style={{ flexDirection: 'row', marginBottom: 12, alignItems: 'center' }}>
-            <Text style={{ color: COLORS.primary, fontWeight: 'bold', marginRight: 12 }}>Gender:</Text>
-            {GENDER_OPTIONS.map(opt => (
-              <TouchableOpacity
-                key={opt}
-                style={{ backgroundColor: gender === opt ? COLORS.primary : COLORS.lightGray, borderRadius: 8, paddingVertical: 6, paddingHorizontal: 14, marginRight: 8 }}
-                onPress={() => setGender(opt)}
-              >
-                <Text style={{ color: gender === opt ? COLORS.white : COLORS.primary }}>{opt}</Text>
-              </TouchableOpacity>
-            ))}
+            <Text style={{ color: COLORS.text, fontWeight: 'bold', marginRight: 12 }}>Gender:</Text>
+            {GENDER_OPTIONS.map(opt => {
+              const isSelected = gender === opt;
+              return (
+                <TouchableOpacity
+                  key={opt}
+                  style={{
+                    backgroundColor: COLORS.white,
+                    borderRadius: 8,
+                    paddingVertical: 6,
+                    paddingHorizontal: 14,
+                    marginRight: 8,
+                    borderWidth: 1,
+                    borderColor: isSelected ? COLORS.primary : COLORS.lightGray,
+                  }}
+                  onPress={() => setGender(opt)}
+                >
+                  <Text style={{ color: isSelected ? COLORS.primary : COLORS.text }}>{opt}</Text>
+                </TouchableOpacity>
+              );
+            })}
           </View>
           <View style={{ flexDirection: 'row', marginBottom: 18, alignItems: 'center', flexWrap: 'wrap' }}>
-            <Text style={{ color: COLORS.primary, fontWeight: 'bold', marginRight: 12 }}>Profile Type:</Text>
-            {PROFILE_TYPE_OPTIONS.map(opt => (
-              <TouchableOpacity
-                key={opt.value}
-                style={{ backgroundColor: profileType === opt.value ? COLORS.primary : COLORS.lightGray, borderRadius: 8, paddingVertical: 6, paddingHorizontal: 14, marginRight: 8, marginBottom: 6 }}
-                onPress={() => setProfileType(opt.value)}
-              >
-                <Text style={{ color: profileType === opt.value ? COLORS.white : COLORS.primary }}>{opt.label}</Text>
-              </TouchableOpacity>
-            ))}
+            <Text style={{ color: COLORS.text, fontWeight: 'bold', marginRight: 12 }}>Profile Type:</Text>
+            {PROFILE_TYPE_OPTIONS.map(opt => {
+              const isSelected = profileType === opt.value;
+              return (
+                <TouchableOpacity
+                  key={opt.value}
+                  style={{
+                    backgroundColor: COLORS.white,
+                    borderRadius: 8,
+                    paddingVertical: 6,
+                    paddingHorizontal: 14,
+                    marginRight: 8,
+                    marginBottom: 6,
+                    borderWidth: 1,
+                    borderColor: isSelected ? COLORS.primary : COLORS.lightGray,
+                  }}
+                  onPress={() => setProfileType(opt.value)}
+                >
+                  <Text style={{ color: isSelected ? COLORS.primary : COLORS.text }}>{opt.label}</Text>
+                </TouchableOpacity>
+              );
+            })}
           </View>
           {error ? <Text style={{ color: COLORS.error, marginBottom: 10, textAlign: 'center' }}>{error}</Text> : null}
           <TouchableOpacity
@@ -852,23 +876,23 @@ function EditProfileModal({ visible, onClose, profile, onSave }: { visible: bool
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
       <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.3)', justifyContent: 'center', alignItems: 'center' }}>
-        <View style={{ backgroundColor: COLORS.white, borderRadius: 20, padding: 24, width: '85%', maxWidth: 400, shadowColor: COLORS.primary, shadowOpacity: 0.18, shadowRadius: 16, elevation: 12, position: 'relative' }}>
+        <View style={{ backgroundColor: 'rgba(240, 249, 244, 1)', borderRadius: 20, padding: 24, width: '85%', maxWidth: 400, position: 'relative' }}>
           <TouchableOpacity style={{ position: 'absolute', top: 12, right: 12, zIndex: 10, backgroundColor: COLORS.lightGray, borderRadius: 16, padding: 4 }} onPress={onClose}>
-            <Ionicons name="close" size={24} color={COLORS.primary} />
+            <Ionicons name="close" size={24} color={COLORS.text} />
           </TouchableOpacity>
-          <Text style={{ fontSize: 22, fontWeight: 'bold', marginBottom: 18, color: COLORS.primary, textAlign: 'center' }}>Edit Profile</Text>
+          <Text style={{ fontSize: 22, fontWeight: 'bold', marginBottom: 18, color: COLORS.text, textAlign: 'center' }}>Edit Profile</Text>
           <TouchableOpacity onPress={pickImage} style={{ alignSelf: 'center', marginBottom: 16 }}>
             {profilePic ? (
               <Image source={{ uri: profilePic }} style={{ width: 80, height: 80, borderRadius: 40, borderWidth: 2, borderColor: COLORS.primary }} />
             ) : (
-              <View style={{ width: 80, height: 80, borderRadius: 40, backgroundColor: COLORS.lightGray, justifyContent: 'center', alignItems: 'center' }}>
-                <Ionicons name="camera" size={32} color={COLORS.primary} />
+              <View style={{ width: 80, height: 80, borderRadius: 40, backgroundColor: COLORS.white, justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: COLORS.lightGray }}>
+                <Ionicons name="camera" size={32} color={COLORS.text} />
               </View>
             )}
-            <Text style={{ color: COLORS.primary, marginTop: 6, fontWeight: 'bold' }}>Change Photo</Text>
+            <Text style={{ color: COLORS.text, marginTop: 6, fontWeight: 'bold' }}>Change Photo</Text>
           </TouchableOpacity>
           <TextInput
-            style={{ borderWidth: 1, borderColor: COLORS.lightGray, borderRadius: 8, padding: 12, marginBottom: 12, fontSize: 16, color: COLORS.primary }}
+            style={{ borderWidth: 1, borderColor: COLORS.lightGray, borderRadius: 8, padding: 12, marginBottom: 12, fontSize: 16, color: COLORS.text, backgroundColor: COLORS.white }}
             placeholder="Name"
             placeholderTextColor={COLORS.gray}
             value={name}
@@ -876,7 +900,7 @@ function EditProfileModal({ visible, onClose, profile, onSave }: { visible: bool
             autoCapitalize="words"
           />
           <TextInput
-            style={{ borderWidth: 1, borderColor: COLORS.lightGray, borderRadius: 8, padding: 12, marginBottom: 12, fontSize: 16, color: COLORS.primary }}
+            style={{ borderWidth: 1, borderColor: COLORS.lightGray, borderRadius: 8, padding: 12, marginBottom: 12, fontSize: 16, color: COLORS.text, backgroundColor: COLORS.white }}
             placeholder="Age"
             placeholderTextColor={COLORS.gray}
             value={age}
@@ -884,28 +908,51 @@ function EditProfileModal({ visible, onClose, profile, onSave }: { visible: bool
             keyboardType={Platform.OS === 'ios' ? 'number-pad' : 'numeric'}
           />
           <View style={{ flexDirection: 'row', marginBottom: 12, alignItems: 'center' }}>
-            <Text style={{ color: COLORS.primary, fontWeight: 'bold', marginRight: 12 }}>Gender:</Text>
-            {GENDER_OPTIONS.map(opt => (
-              <TouchableOpacity
-                key={opt}
-                style={{ backgroundColor: gender === opt ? COLORS.primary : COLORS.lightGray, borderRadius: 8, paddingVertical: 6, paddingHorizontal: 14, marginRight: 8 }}
-                onPress={() => setGender(opt)}
-              >
-                <Text style={{ color: gender === opt ? COLORS.white : COLORS.primary }}>{opt}</Text>
-              </TouchableOpacity>
-            ))}
+            <Text style={{ color: COLORS.text, fontWeight: 'bold', marginRight: 12 }}>Gender:</Text>
+            {GENDER_OPTIONS.map(opt => {
+              const isSelected = gender === opt;
+              return (
+                <TouchableOpacity
+                  key={opt}
+                  style={{
+                    backgroundColor: COLORS.white,
+                    borderRadius: 8,
+                    paddingVertical: 6,
+                    paddingHorizontal: 14,
+                    marginRight: 8,
+                    borderWidth: 1,
+                    borderColor: isSelected ? COLORS.primary : COLORS.lightGray,
+                  }}
+                  onPress={() => setGender(opt)}
+                >
+                  <Text style={{ color: isSelected ? COLORS.primary : COLORS.text }}>{opt}</Text>
+                </TouchableOpacity>
+              );
+            })}
           </View>
           <View style={{ flexDirection: 'row', marginBottom: 18, alignItems: 'center', flexWrap: 'wrap' }}>
-            <Text style={{ color: COLORS.primary, fontWeight: 'bold', marginRight: 12 }}>Profile Type:</Text>
-            {PROFILE_TYPE_OPTIONS.map(opt => (
-              <TouchableOpacity
-                key={opt.value}
-                style={{ backgroundColor: profileType === opt.value ? COLORS.primary : COLORS.lightGray, borderRadius: 8, paddingVertical: 6, paddingHorizontal: 14, marginRight: 8, marginBottom: 6 }}
-                onPress={() => setProfileType(opt.value)}
-              >
-                <Text style={{ color: profileType === opt.value ? COLORS.white : COLORS.primary }}>{opt.label}</Text>
-              </TouchableOpacity>
-            ))}
+            <Text style={{ color: COLORS.text, fontWeight: 'bold', marginRight: 12 }}>Profile Type:</Text>
+            {PROFILE_TYPE_OPTIONS.map(opt => {
+              const isSelected = profileType === opt.value;
+              return (
+                <TouchableOpacity
+                  key={opt.value}
+                  style={{
+                    backgroundColor: COLORS.white,
+                    borderRadius: 8,
+                    paddingVertical: 6,
+                    paddingHorizontal: 14,
+                    marginRight: 8,
+                    marginBottom: 6,
+                    borderWidth: 1,
+                    borderColor: isSelected ? COLORS.primary : COLORS.lightGray,
+                  }}
+                  onPress={() => setProfileType(opt.value)}
+                >
+                  <Text style={{ color: isSelected ? COLORS.primary : COLORS.text }}>{opt.label}</Text>
+                </TouchableOpacity>
+              );
+            })}
           </View>
           {error ? <Text style={{ color: COLORS.error, marginBottom: 10, textAlign: 'center' }}>{error}</Text> : null}
           <TouchableOpacity
@@ -1008,7 +1055,7 @@ export default function Profile() {
 
   return (
     <View style={styles.container}>
-      <ScrollView showsVerticalScrollIndicator={false}>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
         <View>
           <CustomHeader title="Profile" onSettingsPress={() => setShowSidebar(true)} />
           <ProfileHeader profile={profile} />
@@ -1114,12 +1161,12 @@ export default function Profile() {
       {/* Switch Profile Modal */}
       <Modal visible={showSwitchModal} animationType="fade" transparent onRequestClose={() => setShowSwitchModal(false)}>
         <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.3)', justifyContent: 'center', alignItems: 'center' }}>
-          <View style={{ backgroundColor: COLORS.white, borderRadius: 20, padding: 24, width: '85%', maxHeight: '75%', shadowColor: COLORS.primary, shadowOpacity: 0.18, shadowRadius: 16, elevation: 12, position: 'relative' }}>
+          <View style={{ backgroundColor: 'rgba(240, 249, 244, 1)', borderRadius: 20, padding: 24, width: '85%', maxHeight: '75%', position: 'relative' }}>
             {/* Close (X) Button */}
             <TouchableOpacity style={{ position: 'absolute', top: 12, right: 12, zIndex: 10, backgroundColor: COLORS.lightGray, borderRadius: 16, padding: 4 }} onPress={() => setShowSwitchModal(false)}>
-              <Ionicons name="close" size={24} color={COLORS.primary} />
+              <Ionicons name="close" size={24} color={COLORS.text} />
             </TouchableOpacity>
-            <Text style={{ fontSize: 22, fontWeight: 'bold', marginBottom: 20, color: COLORS.primary, textAlign: 'center' }}>Switch Profile</Text>
+            <Text style={{ fontSize: 22, fontWeight: 'bold', marginBottom: 20, color: COLORS.text, textAlign: 'center' }}>Switch Profile</Text>
             {profiles.length === 0 ? (
               <View style={{ alignItems: 'center', marginTop: 32 }}>
                 <Text style={{ marginBottom: 18, fontSize: 16, color: COLORS.gray }}>No profiles found.</Text>
@@ -1144,11 +1191,7 @@ export default function Profile() {
                         borderRadius: 12,
                         borderWidth: isSelected ? 2 : 1,
                         borderColor: isSelected ? COLORS.primary : COLORS.lightGray,
-                        backgroundColor: isSelected ? '#e6f7ef' : COLORS.white,
-                        shadowColor: isSelected ? COLORS.primary : undefined,
-                        shadowOpacity: isSelected ? 0.08 : 0,
-                        shadowRadius: isSelected ? 8 : 0,
-                        elevation: isSelected ? 2 : 0,
+                        backgroundColor: COLORS.white,
                       }}
                       onPress={() => {
                         setProfile(item);
@@ -1158,11 +1201,11 @@ export default function Profile() {
                       accessibilityLabel={`Switch to profile ${item.name || 'Unnamed Profile'}`}
                     >
                       <View style={{ flex: 1 }}>
-                        <Text style={{ color: COLORS.primary, fontWeight: 'bold', fontSize: 17 }}>{item.name || 'Unnamed Profile'}</Text>
+                        <Text style={{ color: COLORS.text, fontWeight: 'bold', fontSize: 17 }}>{item.name || 'Unnamed Profile'}</Text>
                         <Text style={{ color: COLORS.gray, fontSize: 15 }}>{item.age ? `${item.age} years` : ''} {item.gender || ''}</Text>
                       </View>
                       {isSelected && (
-                        <Ionicons name="checkmark-circle" size={24} color={COLORS.primary} style={{ marginLeft: 8 }} />
+                        <Ionicons name="checkmark-circle" size={24} color={COLORS.text} style={{ marginLeft: 8 }} />
                       )}
                     </TouchableOpacity>
                   );
@@ -1187,6 +1230,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: COLORS.white,
+  },
+  scrollContent: {
+    paddingBottom: 20,
   },
   centered: {
     justifyContent: 'center',
@@ -1236,7 +1282,7 @@ const styles = StyleSheet.create({
     paddingVertical: 32,
     paddingHorizontal: 24,
     borderWidth: 1,
-    borderColor: 'rgba(48, 115, 81, 0.1)',
+    borderColor: 'rgba(37, 211, 102, 0.1)',
     shadowColor: COLORS.primary,
     shadowOpacity: 0.12,
     shadowRadius: 20,
@@ -1288,7 +1334,7 @@ const styles = StyleSheet.create({
   profileName: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: COLORS.primary,
+    color: COLORS.text,
     textAlign: 'center',
   },
   profileDetailsRow: {
@@ -1314,7 +1360,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#111827',
+    color: COLORS.text,
     marginBottom: 12,
   },
   timelineContainer: {
@@ -1346,16 +1392,16 @@ const styles = StyleSheet.create({
   timelineTitle: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#1F2937',
+    color: COLORS.text,
     marginTop: 2,
   },
   timelineDetails: {
     fontSize: 14,
-    color: '#4B5563',
+    color: COLORS.text,
     marginTop: 4,
   },
   card: {
-    backgroundColor: COLORS.white,
+    backgroundColor: 'rgba(240, 249, 244, 0.95)',
     borderRadius: 16,
     marginHorizontal: 20,
     marginTop: 16,
@@ -1366,7 +1412,7 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
     elevation: 4,
     borderWidth: 1,
-    borderColor: 'rgba(48, 115, 81, 0.15)',
+    borderColor: 'rgba(37, 211, 102, 0.15)',
   },
   cardHeader: {
     flexDirection: 'row',
@@ -1376,7 +1422,7 @@ const styles = StyleSheet.create({
   cardTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: COLORS.primary,
+    color: COLORS.text,
     marginLeft: 8,
   },
   cardItem: {
@@ -1388,7 +1434,7 @@ const styles = StyleSheet.create({
   },
   cardItemText: {
     fontSize: 16,
-    color: '#374151',
+    color: COLORS.text,
   },
   cardItemDate: {
     fontSize: 14,
@@ -1426,7 +1472,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.secondary,
   },
   secondaryActionButtonText: {
-    color: COLORS.primary,
+    color: COLORS.white,
   },
   switchProfileButton: {
     flexDirection: 'row',
@@ -1480,7 +1526,7 @@ const styles = StyleSheet.create({
   sidebarTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: COLORS.primary,
+    color: COLORS.text,
   },
   sidebarCloseButton: {
     padding: 4,
@@ -1495,16 +1541,18 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     borderRadius: 12,
     marginBottom: 4,
+    backgroundColor: 'rgba(240, 249, 244, 1)',
   },
   sidebarMenuItemText: {
     flex: 1,
     fontSize: 16,
     fontWeight: '600',
-    color: COLORS.primary,
+    color: COLORS.text,
     marginLeft: 12,
   },
   sidebarMenuItemDanger: {
     marginTop: 8,
+    backgroundColor: 'transparent',
   },
   sidebarMenuItemTextDanger: {
     color: COLORS.error,
@@ -1569,16 +1617,11 @@ const customizeStyles = StyleSheet.create({
     alignItems: 'center',
   },
   modalContent: {
-    backgroundColor: COLORS.white,
+    backgroundColor: 'rgba(240, 249, 244, 1)',
     borderRadius: 20,
     width: '90%',
     maxWidth: 400,
     maxHeight: '80%',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 5,
   },
   modalHeader: {
     flexDirection: 'row',
@@ -1591,7 +1634,7 @@ const customizeStyles = StyleSheet.create({
   modalTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: COLORS.primary,
+    color: COLORS.text,
   },
   closeButton: {
     padding: 4,
@@ -1610,7 +1653,7 @@ const customizeStyles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: COLORS.primary,
+    color: COLORS.text,
     marginLeft: 8,
   },
   sectionDescription: {
@@ -1625,7 +1668,7 @@ const customizeStyles = StyleSheet.create({
   timeLabel: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#374151',
+    color: COLORS.text,
     marginBottom: 8,
   },
   timeInput: {
@@ -1634,7 +1677,7 @@ const customizeStyles = StyleSheet.create({
     borderRadius: 8,
     padding: 12,
     fontSize: 16,
-    backgroundColor: COLORS.lightGray,
+    backgroundColor: COLORS.white,
   },
   timeInputError: {
     borderColor: COLORS.error,
@@ -1660,13 +1703,13 @@ const customizeStyles = StyleSheet.create({
   },
   cancelButton: {
     flex: 1,
-    backgroundColor: COLORS.lightGray,
+    backgroundColor: COLORS.white,
     borderRadius: 8,
     padding: 12,
     alignItems: 'center',
   },
   cancelButtonText: {
-    color: COLORS.gray,
+    color: '#011A05',
     fontSize: 16,
     fontWeight: '600',
   },

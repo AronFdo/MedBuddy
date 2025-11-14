@@ -11,12 +11,13 @@ import { BACKEND_URL } from '../../lib/config';
 import { notificationService } from '../../lib/notificationService';
 
 const COLORS = {
-  primary: '#307351',
+  primary: '#25D366',
   secondary: '#7BE0AD',
   white: '#FFFFFF',
   gray: '#6B7280',
   lightGray: '#F3F4F6',
   error: '#EF4444',
+  text: '#011A05',
 };
 
 function CustomHeader({ title }: { title: string }) {
@@ -488,7 +489,7 @@ function MultiStepPrescriptionModal({ onSuccess, profileId, accessToken, mealTim
         onPress={() => setShowDatePicker(true)}
       >
         <Text style={{ 
-          color: prescription.issued_date ? COLORS.primary : COLORS.gray,
+          color: prescription.issued_date ? COLORS.text : COLORS.gray,
           fontSize: 16
         }}>
           {prescription.issued_date ? new Date(prescription.issued_date).toLocaleDateString() : 'Select date (optional)'}
@@ -614,8 +615,8 @@ function MultiStepPrescriptionModal({ onSuccess, profileId, accessToken, mealTim
         
 
         
-        <TouchableOpacity style={[modalStyles.saveButton, { backgroundColor: COLORS.secondary, marginBottom: 12 }]} onPress={handleAddMedication}>
-          <Text style={[modalStyles.saveButtonText, { color: COLORS.primary }]}>Add This Medication</Text>
+        <TouchableOpacity style={[modalStyles.saveButton, { backgroundColor: COLORS.primary, marginBottom: 12 }]} onPress={handleAddMedication}>
+          <Text style={[modalStyles.saveButtonText, { color: COLORS.white }]}>Add This Medication</Text>
         </TouchableOpacity>
 
         {/* List of added medications */}
@@ -649,8 +650,8 @@ function MultiStepPrescriptionModal({ onSuccess, profileId, accessToken, mealTim
       
       {/* Fixed bottom buttons */}
       <View style={modalStyles.buttonRow}>
-        <TouchableOpacity style={[modalStyles.saveButton, { flex: 1, marginRight: 8, backgroundColor: COLORS.gray }]} onPress={() => setCurrentStep(1)}>
-          <Text style={modalStyles.saveButtonText}>Back</Text>
+        <TouchableOpacity style={[modalStyles.saveButton, { flex: 1, marginRight: 8, backgroundColor: COLORS.white }]} onPress={() => setCurrentStep(1)}>
+          <Text style={[modalStyles.saveButtonText, { color: COLORS.text }]}>Back</Text>
         </TouchableOpacity>
         <TouchableOpacity style={[modalStyles.saveButton, { flex: 1, marginLeft: 8 }]} onPress={handleSaveAll} disabled={saving}>
           {saving ? (
@@ -1010,7 +1011,7 @@ function EditPrescriptionModalForm({ prescription, medications, onSuccess, onCan
           style={[modalStyles.saveButton, { backgroundColor: COLORS.secondary, marginTop: 16 }]} 
           onPress={() => setShowAddMedication(!showAddMedication)}
         >
-          <Text style={[modalStyles.saveButtonText, { color: COLORS.primary }]}>
+          <Text style={[modalStyles.saveButtonText, { color: COLORS.text }]}>
             {showAddMedication ? 'Cancel Adding' : 'Add New Medication'}
           </Text>
         </TouchableOpacity>
@@ -1111,8 +1112,8 @@ function EditPrescriptionModalForm({ prescription, medications, onSuccess, onCan
               </View>
             )}
             
-            <TouchableOpacity style={[modalStyles.saveButton, { backgroundColor: COLORS.secondary, marginTop: 12 }]} onPress={handleAddMedication}>
-              <Text style={[modalStyles.saveButtonText, { color: COLORS.primary }]}>Add This Medication</Text>
+            <TouchableOpacity style={[modalStyles.saveButton, { backgroundColor: COLORS.primary, marginTop: 12 }]} onPress={handleAddMedication}>
+              <Text style={[modalStyles.saveButtonText, { color: COLORS.white }]}>Add This Medication</Text>
             </TouchableOpacity>
           </View>
         )}
@@ -1139,7 +1140,7 @@ function EditPrescriptionModalForm({ prescription, medications, onSuccess, onCan
 
 const modalStyles = StyleSheet.create({
   container: {
-    backgroundColor: COLORS.white,
+    backgroundColor: 'rgba(240, 249, 244, 1)',
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     padding: 24,
@@ -1157,7 +1158,7 @@ const modalStyles = StyleSheet.create({
   header: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: COLORS.primary,
+    color: COLORS.text,
     textAlign: 'center',
     marginBottom: 18,
     marginTop: 12,
@@ -1200,11 +1201,11 @@ const modalStyles = StyleSheet.create({
     paddingHorizontal: 16,
     marginBottom: 16,
     fontSize: 16,
-    backgroundColor: COLORS.lightGray,
+    backgroundColor: COLORS.white,
   },
   label: {
     fontSize: 16,
-    color: COLORS.gray,
+    color: COLORS.text,
     marginBottom: 4,
     fontWeight: 'bold',
   },
@@ -1229,11 +1230,11 @@ const modalStyles = StyleSheet.create({
   medicationName: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: COLORS.primary,
+    color: COLORS.text,
   },
   medicationDetail: {
     fontSize: 14,
-    color: COLORS.gray,
+    color: COLORS.text,
     marginTop: 2,
   },
   removeButton: {
@@ -1248,7 +1249,7 @@ const modalStyles = StyleSheet.create({
   },
   reminderPreview: {
     fontSize: 12,
-    color: COLORS.primary,
+    color: COLORS.text,
     marginTop: 4,
     fontStyle: 'italic',
   },
@@ -1292,7 +1293,7 @@ const modalStyles = StyleSheet.create({
   mealTimeText: {
     fontSize: 14,
     fontWeight: 'bold',
-    color: COLORS.gray,
+    color: COLORS.text,
     textAlign: 'center',
   },
   mealTimeTextSelected: {
@@ -1303,7 +1304,7 @@ const modalStyles = StyleSheet.create({
   },
   mealTimeValue: {
     fontSize: 12,
-    color: COLORS.gray,
+    color: COLORS.text,
     marginTop: 2,
     textAlign: 'center',
   },
@@ -1314,7 +1315,7 @@ const modalStyles = StyleSheet.create({
   },
   selectedMealTimesText: {
     fontSize: 12,
-    color: COLORS.primary,
+    color: COLORS.text,
     marginTop: 8,
     fontStyle: 'italic',
     textAlign: 'center',
@@ -1354,7 +1355,7 @@ const modalStyles = StyleSheet.create({
     marginBottom: 12,
   },
   ocrIndicatorText: {
-    color: COLORS.primary,
+    color: COLORS.text,
     fontSize: 14,
     marginLeft: 4,
   },
@@ -2057,7 +2058,7 @@ export default function Medications() {
       )}
       <View style={styles.bottomBar}>
         <TouchableOpacity style={styles.actionButtonVertical} onPress={() => setShowAddModal(true)}>
-          <Ionicons name="add-circle-outline" size={24} color={COLORS.primary} />
+          <Ionicons name="add-circle-outline" size={24} color={COLORS.white} />
           <Text style={styles.actionText}>Add Prescription</Text>
         </TouchableOpacity>
       </View>
@@ -2258,7 +2259,7 @@ const styles = StyleSheet.create({
   tabText: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: COLORS.gray,
+    color: COLORS.text,
   },
   activeTabText: {
     color: COLORS.white,
@@ -2279,7 +2280,7 @@ const styles = StyleSheet.create({
   actionText: {
     marginLeft: 6,
     fontSize: 16,
-    color: COLORS.primary,
+    color: COLORS.white,
     fontWeight: 'bold',
   },
   centered: {
@@ -2289,7 +2290,7 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 16,
-    color: COLORS.gray,
+    color: COLORS.text,
     textAlign: 'center',
   },
   errorText: {
@@ -2308,12 +2309,12 @@ const styles = StyleSheet.create({
   },
   medicationName: {
     fontSize: 18,
-    color: COLORS.primary,
+    color: COLORS.text,
     fontWeight: 'bold',
   },
   medicationDetail: {
     fontSize: 15,
-    color: COLORS.gray,
+    color: COLORS.text,
     marginTop: 2,
   },
   bottomBar: {
@@ -2326,11 +2327,12 @@ const styles = StyleSheet.create({
   actionButtonVertical: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: COLORS.lightGray,
+    backgroundColor: COLORS.primary,
     borderRadius: 12,
     paddingVertical: 12,
     paddingHorizontal: 24,
     marginVertical: 6,
+    marginBottom: 20,
     width: 220,
     justifyContent: 'center',
     shadowColor: COLORS.primary,
@@ -2499,7 +2501,7 @@ const styles = StyleSheet.create({
   sectionHeaderTitle: {
     fontWeight: 'bold',
     fontSize: 17,
-    color: COLORS.primary,
+    color: COLORS.text,
   },
   sectionHeaderNotes: {
     color: '#555',
@@ -2531,8 +2533,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    borderBottomWidth: 1,
-    borderBottomColor: '#2d5a3d',
   },
   prescriptionHeaderContent: {
     flex: 1,

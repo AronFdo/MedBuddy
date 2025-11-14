@@ -17,6 +17,9 @@ const COLORS = {
   info: '#3B82F6',
 };
 
+const TEXT_COLOR = '#011A05';
+const SHADOW_COLOR = '#25D366';
+
 // Helper to get greeting
 function getGreeting(name: string | null) {
   const hour = new Date().getHours();
@@ -160,21 +163,19 @@ function NotificationCard({
 }
 
 function QuickStatsCard({ title, value, icon, color }: { title: string; value: string; icon: string; color: string }) {
-  // Create a more sophisticated background color based on the theme
-  const getBackgroundColor = (color: string) => {
-    if (color === COLORS.primary) return '#E8F5E8'; // Light green background
-    if (color === COLORS.secondary) return '#F0FDF4'; // Very light green background
-    if (color === COLORS.error) return '#FEF2F2'; // Light red background
-    return '#F8FAFC'; // Default light background
-  };
-
+  const isDosesMissed = title === 'Doses Missed';
+  const backgroundColor = isDosesMissed ? '#FEF2F2' : 'rgba(240, 249, 244, 0.95)';
+  const iconBackgroundColor = isDosesMissed ? color : '#FFFFFF';
+  const iconColor = isDosesMissed ? COLORS.white : TEXT_COLOR;
+  const textColor = isDosesMissed ? COLORS.error : TEXT_COLOR;
+  const cardShadowColor = isDosesMissed ? COLORS.error : SHADOW_COLOR;
   return (
-    <View style={[styles.quickStatsCard, { backgroundColor: getBackgroundColor(color) }]}>
-      <View style={[styles.quickStatsIcon, { backgroundColor: color }]}>
-        <Ionicons name={icon as any} size={24} color={COLORS.white} />
+    <View style={[styles.quickStatsCard, { backgroundColor, shadowColor: cardShadowColor }]}>
+      <View style={[styles.quickStatsIcon, { backgroundColor: iconBackgroundColor, borderWidth: isDosesMissed ? 0 : 1, borderColor: 'rgba(48, 115, 81, 0.1)' }]}>
+        <Ionicons name={icon as any} size={24} color={iconColor} />
       </View>
-      <Text style={[styles.quickStatsValue, { color: color }]}>{value}</Text>
-      <Text style={styles.quickStatsTitle}>{title}</Text>
+      <Text style={[styles.quickStatsValue, { color: textColor }]}>{value}</Text>
+      <Text style={[styles.quickStatsTitle, { color: textColor }]}>{title}</Text>
     </View>
   );
 }
@@ -490,8 +491,8 @@ export default function HomeDashboard() {
     return (
       <View style={[styles.container, { justifyContent: 'center', alignItems: 'center', padding: 24 }]}>
         <Ionicons name="person-circle-outline" size={64} color={COLORS.gray} style={{ marginBottom: 16 }} />
-        <Text style={[styles.greeting, { color: COLORS.gray, textAlign: 'center' }]}>No profile selected</Text>
-        <Text style={{ color: COLORS.gray, textAlign: 'center', marginTop: 8 }}>
+        <Text style={[styles.greeting, { color: TEXT_COLOR, textAlign: 'center' }]}>No profile selected</Text>
+        <Text style={{ color: TEXT_COLOR, textAlign: 'center', marginTop: 8 }}>
           Please create or select a profile in the Profile tab to view your dashboard.
         </Text>
       </View>
@@ -513,7 +514,7 @@ export default function HomeDashboard() {
                 />
               ) : (
                 <View style={[styles.profileImage, styles.profileImagePlaceholder]}>
-                  <Ionicons name="person" size={40} color={COLORS.primary} />
+            <Ionicons name="person" size={40} color={TEXT_COLOR} />
                 </View>
               )}
             </View>
@@ -556,13 +557,13 @@ export default function HomeDashboard() {
         {/* Notifications Section */}
         <View style={styles.sectionContainer}>
           <View style={styles.sectionHeader}>
-            <Ionicons name="notifications" size={24} color={COLORS.primary} />
+            <Ionicons name="notifications" size={24} color={TEXT_COLOR} />
             <Text style={styles.sectionTitle}>Today's Notifications</Text>
           </View>
           
           {upcoming.length === 0 && missed.length === 0 && upcomingAppointments.length === 0 ? (
             <View style={styles.emptyState}>
-              <Ionicons name="checkmark-done-circle" size={48} color={COLORS.success} />
+              <Ionicons name="checkmark-done-circle" size={48} color="#25D366" />
               <Text style={styles.emptyStateTitle}>All caught up!</Text>
               <Text style={styles.emptyStateSubtitle}>No pending notifications for today.</Text>
             </View>
@@ -613,7 +614,7 @@ export default function HomeDashboard() {
         {/* Recent Activity */}
         <View style={styles.sectionContainer}>
           <View style={styles.sectionHeader}>
-            <Ionicons name="time" size={24} color={COLORS.primary} />
+            <Ionicons name="time" size={24} color={TEXT_COLOR} />
             <Text style={styles.sectionTitle}>Recent Activity (Last 2 Days)</Text>
           </View>
           
@@ -664,9 +665,10 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(240, 249, 244, 0.95)',
     borderWidth: 1,
     borderColor: 'rgba(48, 115, 81, 0.1)',
-    shadowColor: COLORS.primary,
+    shadowColor: SHADOW_COLOR,
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.12,
-    shadowRadius: 20,
+    shadowRadius: 12,
     elevation: 4,
     alignItems: 'center',
     justifyContent: 'center',
@@ -683,7 +685,7 @@ const styles = StyleSheet.create({
     borderRadius: 40,
     overflow: 'hidden',
     marginBottom: 16,
-    shadowColor: COLORS.primary,
+    shadowColor: SHADOW_COLOR,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.15,
     shadowRadius: 8,
@@ -694,7 +696,7 @@ const styles = StyleSheet.create({
     height: '100%',
   },
   profileImagePlaceholder: {
-    backgroundColor: COLORS.lightGray,
+    backgroundColor: COLORS.white,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -704,7 +706,7 @@ const styles = StyleSheet.create({
   greeting: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: COLORS.primary,
+    color: TEXT_COLOR,
     textAlign: 'center',
   },
   quickStatsContainer: {
@@ -726,11 +728,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     borderWidth: 1,
     borderColor: 'rgba(48, 115, 81, 0.1)',
-    shadowColor: COLORS.primary,
+    shadowColor: SHADOW_COLOR,
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 2,
+    shadowOpacity: 0.12,
+    shadowRadius: 12,
+    elevation: 4,
   },
   quickStatsIcon: {
     width: 48,
@@ -743,12 +745,12 @@ const styles = StyleSheet.create({
   quickStatsValue: {
     fontSize: 32,
     fontWeight: '800',
-    color: COLORS.primary,
+    color: TEXT_COLOR,
     marginBottom: 8,
   },
   quickStatsTitle: {
     fontSize: 14,
-    color: COLORS.gray,
+    color: TEXT_COLOR,
     fontWeight: '600',
     textAlign: 'center',
   },
@@ -764,7 +766,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: COLORS.primary,
+    color: TEXT_COLOR,
     marginLeft: 8,
   },
   notificationsList: {
@@ -781,11 +783,11 @@ const styles = StyleSheet.create({
     padding: 14,
     marginBottom: 10,
     borderLeftWidth: 4,
-    shadowColor: COLORS.gray,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 6,
-    elevation: 1,
+    shadowColor: SHADOW_COLOR,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 12,
+    elevation: 4,
   },
   notificationIcon: {
     width: 40,
@@ -801,12 +803,12 @@ const styles = StyleSheet.create({
   notificationTitle: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: COLORS.primary,
+    color: TEXT_COLOR,
     marginBottom: 2,
   },
   notificationSubtitle: {
     fontSize: 14,
-    color: COLORS.gray,
+    color: TEXT_COLOR,
     marginBottom: 4,
   },
   notificationTimeRow: {
@@ -815,7 +817,7 @@ const styles = StyleSheet.create({
   },
   notificationTime: {
     fontSize: 13,
-    color: COLORS.gray,
+    color: TEXT_COLOR,
     marginLeft: 4,
   },
   activityList: {
@@ -831,11 +833,11 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 12,
     marginBottom: 8,
-    shadowColor: COLORS.gray,
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 1,
+    shadowColor: SHADOW_COLOR,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 12,
+    elevation: 4,
   },
   activityIcon: {
     width: 32,
@@ -851,17 +853,17 @@ const styles = StyleSheet.create({
   activityTitle: {
     fontSize: 15,
     fontWeight: 'bold',
-    color: COLORS.primary,
+    color: TEXT_COLOR,
     marginBottom: 2,
   },
   activitySubtitle: {
     fontSize: 13,
-    color: COLORS.gray,
+    color: TEXT_COLOR,
     marginBottom: 2,
   },
   activityTime: {
     fontSize: 12,
-    color: COLORS.gray,
+    color: TEXT_COLOR,
     opacity: 0.8,
   },
   emptyState: {
@@ -871,12 +873,12 @@ const styles = StyleSheet.create({
   emptyStateTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: COLORS.primary,
+    color: TEXT_COLOR,
     marginTop: 10,
   },
   emptyStateSubtitle: {
     fontSize: 15,
-    color: COLORS.gray,
+    color: TEXT_COLOR,
     marginTop: 4,
   },
   emptyActivity: {
@@ -885,6 +887,6 @@ const styles = StyleSheet.create({
   },
   emptyActivityText: {
     fontSize: 15,
-    color: COLORS.gray,
+    color: TEXT_COLOR,
   },
 }); 

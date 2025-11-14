@@ -16,12 +16,13 @@ import { supabase } from '../../lib/supabase';
 import { useRouter } from 'expo-router';
 
 const COLORS = {
-  primary: '#307351',
+  primary: '#25D366',
   secondary: '#7BE0AD',
   white: '#FFFFFF',
   gray: '#6B7280',
   lightGray: '#F3F4F6',
   error: '#EF4444',
+  text: '#011A05',
 };
 
 function SignInScreen() {
@@ -101,9 +102,9 @@ function SignInScreen() {
           router.replace('/(tabs)/HomeDashboard');
         }
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Authentication error:', error);
-      if (error.message?.includes('network') || error.message?.includes('fetch')) {
+      if (error?.message?.includes('network') || error?.message?.includes('fetch')) {
         Alert.alert('Network Error', 'Unable to connect to the server. Please check your internet connection and try again.');
       } else {
         Alert.alert('Error', 'An unexpected error occurred. Please try again.');
@@ -204,15 +205,17 @@ function SignInScreen() {
                     <TouchableOpacity
                       key={option}
                       style={{
-                        backgroundColor: gender === option ? COLORS.primary : COLORS.lightGray,
+                        backgroundColor: gender === option ? COLORS.primary : COLORS.white,
                         borderRadius: 8,
                         paddingVertical: 8,
                         paddingHorizontal: 16,
                         marginRight: 8,
+                        borderWidth: gender === option ? 0 : 1,
+                        borderColor: COLORS.lightGray,
                       }}
                       onPress={() => setGender(option)}
                     >
-                      <Text style={{ color: gender === option ? COLORS.white : COLORS.primary }}>{option}</Text>
+                      <Text style={{ color: gender === option ? COLORS.white : COLORS.text }}>{option}</Text>
                     </TouchableOpacity>
                   ))}
                 </View>
@@ -318,7 +321,7 @@ function SignInScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.white,
+    backgroundColor: 'rgba(240, 249, 244, 1)',
   },
   keyboardView: {
     flex: 1,
@@ -366,7 +369,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: COLORS.primary,
+    color: COLORS.text,
     marginBottom: 8,
     textAlign: 'center',
   },
@@ -382,7 +385,7 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 14,
     fontWeight: '600',
-    color: COLORS.primary,
+    color: COLORS.text,
     marginBottom: 8,
   },
   input: {
@@ -393,7 +396,7 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     fontSize: 16,
     backgroundColor: COLORS.white,
-    color: COLORS.primary,
+    color: COLORS.text,
   },
   button: {
     backgroundColor: COLORS.primary,
@@ -404,11 +407,11 @@ const styles = StyleSheet.create({
     shadowColor: COLORS.primary,
     shadowOffset: {
       width: 0,
-      height: 4,
+      height: 2,
     },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 4,
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
   },
   buttonDisabled: {
     opacity: 0.7,
@@ -423,9 +426,10 @@ const styles = StyleSheet.create({
     marginTop: 16,
   },
   forgotPasswordText: {
-    color: COLORS.primary,
+    color: COLORS.text,
     fontSize: 14,
     fontWeight: '500',
+    textDecorationLine: 'underline',
   },
   toggleContainer: {
     flexDirection: 'row',
@@ -443,8 +447,9 @@ const styles = StyleSheet.create({
   },
   toggleButtonText: {
     fontSize: 14,
-    color: COLORS.primary,
+    color: COLORS.text,
     fontWeight: '600',
+    textDecorationLine: 'underline',
   },
 });
 
