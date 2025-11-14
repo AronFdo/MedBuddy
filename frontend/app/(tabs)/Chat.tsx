@@ -255,7 +255,8 @@ export default function Chat() {
         .from('ai_conversations')
         .select('*')
         .eq('profile_id', profile.id)
-        .order('created_at', { ascending: true });
+        .order('created_at', { ascending: true })
+        .limit(100); // Limit to recent conversation history
 
       if (messages && messages.length > 0) {
         // Group messages into conversations (for now, treat all as one conversation)

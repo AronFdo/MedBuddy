@@ -9,6 +9,9 @@ import { useProfile } from '../../lib/ProfileContext';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { BACKEND_URL } from '../../lib/config';
 import { notificationService } from '../../lib/notificationService';
+import { useMedications } from '../../lib/hooks/useMedications';
+import { useTodayMedicationLogs } from '../../lib/hooks/useMedicationLogs';
+import { useQueryClient } from '@tanstack/react-query';
 
 const COLORS = {
   primary: '#25D366',
@@ -1561,20 +1564,22 @@ async function decrementDaysRemaining(medication_id: string) {
 
 export default function Medications() {
   const { profile, loading: profileLoading } = useProfile();
-  const [medications, setMedications] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showEditPrescriptionModal, setShowEditPrescriptionModal] = useState(false);
   const [selectedMedication, setSelectedMedication] = useState<any | null>(null);
   const [selectedPrescription, setSelectedPrescription] = useState<any | null>(null);
-  const [logs, setLogs] = useState<any[]>([]); // Store today's logs
   const [activeTab, setActiveTab] = useState('ongoing'); // New state for tabs
   const [mealTimes, setMealTimes] = useState<{[key: string]: string}>({});
   const [accessToken, setAccessToken] = useState<string | null>(null);
 
-
+  // Use React Query for cached data fetching
+  const { data: medications = [], isLoading: medicationsLoading, error: medicationsError } = useMedications(profile?.id || null);
+  const { data: logs = [], isLoading: logsLoading } = useTodayMedicationLogs(profile?.id || null);
+  
+  const loading = medicationsLoading || logsLoading;
+  const error = medicationsError ? 'Failed to fetch medications' : null;
 
   // Set meal times when profile changes
   useEffect(() => {
@@ -1593,51 +1598,14 @@ export default function Medications() {
     fetchAccessToken();
   }, []);
 
-  // Profile is now managed by global context, no need to refresh on focus
-
-  // Refetch medications/logs when profile changes
+  // Schedule medication reminder notifications when medications are loaded
   useEffect(() => {
-    if (!profile || !profile.id) return;
-    setLoading(true);
-    setError(null);
-    const fetchMedicationsAndLogs = async () => {
-      // Fetch medications for this profile
-      console.log('Fetching medications for profile:', profile.id);
-      const { data: meds, error: medsError } = await supabase
-        .from('medications')
-        .select(`
-          *, 
-          prescriptions:prescription_id (id, doctor_name, notes)
-        `)
-        .eq('profile_id', profile.id);
-      console.log('Fetched medications:', meds, 'Error:', medsError);
-      
-      if (medsError) {
-        console.error('Fetch medications error:', medsError);
-        setError('Failed to fetch medications');
-        setMedications([]);
-      } else {
-        console.log('Fetched medications:', meds);
-        setMedications(meds || []);
-        
-        // Schedule medication reminder notifications
-        try {
-          await notificationService.scheduleAllMedicationReminders(profile.id);
-        } catch (error) {
-          console.error('Error scheduling medication reminders:', error);
-        }
-      }
-      // Fetch today's logs for this profile
-      const { data: logData, error: logError } = await supabase
-        .from('medication_logs')
-        .select('*')
-        .eq('profile_id', profile.id)
-        .eq('log_date', getTodayDateStr());
-      if (!logError) setLogs(logData || []);
-      setLoading(false);
-    };
-    fetchMedicationsAndLogs();
-  }, [profile]);
+    if (profile?.id && medications.length > 0) {
+      notificationService.scheduleAllMedicationReminders(profile.id).catch(error => {
+        console.error('Error scheduling medication reminders:', error);
+      });
+    }
+  }, [profile?.id, medications]);
 
   // If no profile, prompt user
   if (profileLoading) {

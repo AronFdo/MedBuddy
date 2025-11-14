@@ -4,6 +4,8 @@ import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { supabase } from '../../lib/supabase';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useProfile } from '../../lib/ProfileContext';
+import { useDashboardData } from '../../lib/hooks/useDashboardData';
+import { useQueryClient } from '@tanstack/react-query';
 
 const COLORS = {
   primary: '#307351',
@@ -182,116 +184,25 @@ function QuickStatsCard({ title, value, icon, color }: { title: string; value: s
 
 export default function HomeDashboard() {
   const { profile, loading: profileLoading } = useProfile();
-  const [loading, setLoading] = useState(true);
-  const [medications, setMedications] = useState<any[]>([]);
-  const [appointments, setAppointments] = useState<any[]>([]);
-  const [logs, setLogs] = useState<any[]>([]);
-  const [healthRecords, setHealthRecords] = useState<any[]>([]);
   const [recentActivity, setRecentActivity] = useState<any[]>([]);
 
-  // Fetch data when profile changes
-  useEffect(() => {
-    const fetchData = async () => {
-      if (!profile) {
-        setMedications([]);
-        setAppointments([]);
-        setLogs([]);
-        setHealthRecords([]);
-        setRecentActivity([]);
-        setLoading(false);
-        return;
-      }
-
-      setLoading(true);
-      try {
-        // Fetch medications for this profile with prescription data
-        const { data: meds, error: medsError } = await supabase
-          .from('medications')
-          .select(`
-            *,
-            prescriptions:prescription_id (id, doctor_name, issued_date, notes)
-          `)
-          .eq('profile_id', profile.id);
-        if (!medsError && meds) {
-          console.log('Fetched medications:', meds);
-          console.log('Sample medication fields:', meds[0] ? Object.keys(meds[0]) : 'No medications');
-          setMedications(meds);
-        } else {
-          console.error('Medications fetch error:', medsError);
-          setMedications([]);
-        }
-
-        // Fetch appointments for this profile
-        const { data: appts, error: apptError } = await supabase
-          .from('appointments')
-          .select('appointment_id, profile_id, date, doctor_name, visit_reason, notes, time, location, attended, attended_date')
-          .eq('profile_id', profile.id);
-        if (!apptError && appts) {
-          setAppointments(appts);
-        } else {
-          if (apptError) {
-            console.error('Error fetching appointments:', apptError);
-          }
-          setAppointments([]);
-        }
-
-        // Fetch health records for this profile
-        const { data: records, error: recordsError } = await supabase
-          .from('health_records')
-          .select('*')
-          .eq('profile_id', profile.id);
-        if (!recordsError && records) {
-          setHealthRecords(records);
-        } else {
-          setHealthRecords([]);
-        }
-
-        // Fetch recent medication logs for this profile (last 2 days)
-        const twoDaysAgo = new Date();
-        twoDaysAgo.setDate(twoDaysAgo.getDate() - 2);
-        const twoDaysAgoStr = twoDaysAgo.toISOString().slice(0, 10);
-        const { data: logData, error: logError } = await supabase
-          .from('medication_logs')
-          .select('*')
-          .eq('profile_id', profile.id)
-          .gte('log_date', twoDaysAgoStr)
-          .order('log_date', { ascending: false });
-        if (!logError && logData) {
-          setLogs(logData);
-        } else {
-          setLogs([]);
-        }
-      } catch (error) {
-        console.error('Error fetching dashboard data:', error);
-        setMedications([]);
-        setAppointments([]);
-        setLogs([]);
-        setHealthRecords([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchData();
-  }, [profile]);
+  // Use React Query for cached data fetching
+  const { data: dashboardData, isLoading, error, refetch } = useDashboardData(profile?.id || null);
+  
+  const medications = dashboardData?.medications || [];
+  const appointments = dashboardData?.appointments || [];
+  const logs = dashboardData?.logs || [];
+  const healthRecords = dashboardData?.healthRecords || [];
+  const loading = isLoading;
+  const queryClient = useQueryClient();
 
   // Re-fetch logs when a medication log is updated
   const refreshLogs = async () => {
     if (!profile) return;
-    const twoDaysAgo = new Date();
-    twoDaysAgo.setDate(twoDaysAgo.getDate() - 2);
-    const twoDaysAgoStr = twoDaysAgo.toISOString().slice(0, 10);
-    const { data: logData, error: logError } = await supabase
-      .from('medication_logs')
-      .select('*')
-      .eq('profile_id', profile.id)
-      .gte('log_date', twoDaysAgoStr)
-      .order('log_date', { ascending: false });
-    if (!logError && logData) {
-      setLogs(logData);
-    } else {
-      setLogs([]);
-    }
+    // Invalidate dashboard data to trigger refetch
+    await queryClient.invalidateQueries({ queryKey: ['dashboard', profile.id] });
+    // Also invalidate medication logs specifically
+    await queryClient.invalidateQueries({ queryKey: ['medicationLogs', profile.id] });
   };
 
   // Generate recent activity from the last 2 days

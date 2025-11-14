@@ -1000,7 +1000,9 @@ export default function Appointments() {
     const { data, error } = await supabase
       .from('appointments')
       .select('appointment_id, profile_id, date, doctor_name, visit_reason, notes, time, location, attended, attended_date')
-      .eq('profile_id', profile.id);
+      .eq('profile_id', profile.id)
+      .order('date', { ascending: false })
+      .limit(50); // Limit to recent appointments
     if (!error && data) {
       setAppointments(data);
     } else {
@@ -1017,9 +1019,10 @@ export default function Appointments() {
     
     const { data, error } = await supabase
       .from('health_records')
-      .select('*')
+      .select('id, profile_id, event_date, record_type, title, attachment_url, notes')
       .eq('profile_id', profile.id)
-      .order('event_date', { ascending: false });
+      .order('event_date', { ascending: false })
+      .limit(30); // Limit to recent records
     if (!error && data) {
       setHealthRecords(data);
     } else {

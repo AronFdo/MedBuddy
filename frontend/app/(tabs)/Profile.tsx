@@ -1002,9 +1002,10 @@ export default function Profile() {
       // Fetch Health Records for profile
       const { data: recordsData } = await supabase
         .from('health_records')
-        .select('*')
+        .select('id, profile_id, event_date, record_type, title, attachment_url, notes')
         .eq('profile_id', profile.id)
-        .order('event_date', { ascending: false });
+        .order('event_date', { ascending: false })
+        .limit(30); // Limit to recent records
       setHealthRecords(recordsData || []);
 
       // Fetch Past Appointments for profile
@@ -1014,7 +1015,8 @@ export default function Profile() {
         .select('appointment_id, date, doctor_name')
         .eq('profile_id', profile.id)
         .lt('date', today)
-        .order('date', { ascending: false });
+        .order('date', { ascending: false })
+        .limit(50); // Limit to recent past appointments
       setPastAppointments(
         apptData?.map(a => ({ ...a, name: a.doctor_name, id: a.appointment_id })) || []
       );
@@ -1023,7 +1025,8 @@ export default function Profile() {
       const { data: medData, error: medError } = await supabase
         .from('medications')
         .select('*')
-        .eq('profile_id', profile.id);
+        .eq('profile_id', profile.id)
+        .limit(100); // Limit to prevent over-fetching
       
       console.log('Profile - Fetched medications:', medData, 'Error:', medError);
       
