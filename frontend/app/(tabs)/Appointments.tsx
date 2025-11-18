@@ -10,8 +10,7 @@ import * as FileSystem from 'expo-file-system';
 import { BACKEND_URL } from '../../lib/config';
 import DownloadedReports from '../../components/DownloadedReports';
 import { notificationService } from '../../lib/notificationService';
-
-
+import { Fonts } from '../../constants/Fonts';
 
 const COLORS = {
   primary: '#25D366',
@@ -105,7 +104,7 @@ function AddAppointmentModalForm({ onSuccess, onCancel, profileId }: { onSuccess
       <View style={modalStyles.rowInput}>
         <View style={modalStyles.halfInput}>
           <TouchableOpacity style={modalStyles.halfInputField} onPress={() => setShowDatePicker(true)}>
-            <Text style={{ color: COLORS.text }}>
+            <Text style={{ color: COLORS.text, fontFamily: Fonts.regular }}>
               {date ? date.toDateString() : 'Select Date'}
             </Text>
           </TouchableOpacity>
@@ -123,7 +122,7 @@ function AddAppointmentModalForm({ onSuccess, onCancel, profileId }: { onSuccess
         </View>
         <View style={modalStyles.halfInput}>
           <TouchableOpacity style={modalStyles.halfInputField} onPress={() => setShowTimePicker(true)}>
-            <Text style={{ color: COLORS.text }}>
+            <Text style={{ color: COLORS.text, fontFamily: Fonts.regular }}>
               {time ? time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Select Time (optional)'}
             </Text>
           </TouchableOpacity>
@@ -155,7 +154,7 @@ function AddAppointmentModalForm({ onSuccess, onCancel, profileId }: { onSuccess
         multiline
         placeholderTextColor={COLORS.gray}
       />
-      {error && <Text style={{ color: COLORS.error, marginTop: 8, marginBottom: 8 }}>{error}</Text>}
+      {error && <Text style={{ color: COLORS.error, fontFamily: Fonts.regular, marginTop: 8, marginBottom: 8 }}>{error}</Text>}
       <TouchableOpacity style={[modalStyles.saveButton, { marginTop: 12 }]} onPress={handleSave} disabled={saving}>
         <Text style={modalStyles.saveButtonText}>{saving ? 'Saving...' : 'Save'}</Text>
       </TouchableOpacity>
@@ -222,7 +221,7 @@ function EditAppointmentModalForm({ appointment, onSuccess, onCancel }: { appoin
         onChangeText={setVisitReason}
       />
       <TouchableOpacity style={modalStyles.input} onPress={() => setShowDatePicker(true)}>
-        <Text style={{ color: date ? COLORS.primary : COLORS.gray }}>
+        <Text style={{ color: date ? COLORS.primary : COLORS.gray, fontFamily: Fonts.regular }}>
           {date ? date.toDateString() : 'Select Date'}
         </Text>
       </TouchableOpacity>
@@ -238,7 +237,7 @@ function EditAppointmentModalForm({ appointment, onSuccess, onCancel }: { appoin
         />
       )}
       <TouchableOpacity style={modalStyles.input} onPress={() => setShowTimePicker(true)}>
-        <Text style={{ color: time ? COLORS.primary : COLORS.gray }}>
+        <Text style={{ color: time ? COLORS.primary : COLORS.gray, fontFamily: Fonts.regular }}>
           {time ? time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Select Time (optional)'}
         </Text>
       </TouchableOpacity>
@@ -268,7 +267,7 @@ function EditAppointmentModalForm({ appointment, onSuccess, onCancel }: { appoin
         multiline
         placeholderTextColor={COLORS.gray}
       />
-      {error && <Text style={{ color: COLORS.error, marginTop: 8 }}>{error}</Text>}
+      {error && <Text style={{ color: COLORS.error, fontFamily: Fonts.regular, marginTop: 8 }}>{error}</Text>}
       <TouchableOpacity style={modalStyles.saveButton} onPress={handleSave} disabled={saving}>
         <Text style={modalStyles.saveButtonText}>{saving ? 'Saving...' : 'Save'}</Text>
       </TouchableOpacity>
@@ -332,18 +331,18 @@ function AttendedModal({ appointment, onClose, onSave }: { appointment: any, onC
                 >
                   <Text style={modalStyles.header}>Mark as Attended</Text>
                   <View style={{ marginVertical: 16 }}>
-                    <Text style={{ fontSize: 16, color: COLORS.gray, marginBottom: 8 }}>
+                    <Text style={{ fontSize: 16, fontFamily: Fonts.regular, color: COLORS.gray, marginBottom: 8 }}>
                       Appointment: {appointment.doctor_name}
                     </Text>
-                    <Text style={{ fontSize: 14, color: COLORS.gray, marginBottom: 16 }}>
+                    <Text style={{ fontSize: 14, fontFamily: Fonts.regular, color: COLORS.gray, marginBottom: 16 }}>
                       Date: {appointment.date}
                     </Text>
                   </View>
                   
-                  <Text style={{ fontSize: 16, color: COLORS.primary, fontWeight: 'bold', marginBottom: 8 }}>
+                  <Text style={{ fontSize: 16, color: COLORS.primary, fontFamily: Fonts.bold, marginBottom: 8 }}>
                     Appointment Notes (optional)
                   </Text>
-                  <Text style={{ fontSize: 14, color: COLORS.gray, marginBottom: 12 }}>
+                  <Text style={{ fontSize: 14, fontFamily: Fonts.regular, color: COLORS.gray, marginBottom: 12 }}>
                     Add notes about what happened during the appointment. These will be saved as a health record.
                   </Text>
                   
@@ -353,7 +352,7 @@ function AttendedModal({ appointment, onClose, onSave }: { appointment: any, onC
                     value={notes}
                     onChangeText={setNotes}
                     multiline
-                    numberOfLines={5}
+                    numberOfLines={10}
                     blurOnSubmit={false}
                   />
                 </ScrollView>
@@ -478,7 +477,7 @@ function HealthRecordForm({
         style={[modalStyles.input, { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }]} 
         onPress={() => setShowTypePicker(true)}
       >
-        <Text style={{ color: COLORS.text, flex: 1 }}>
+        <Text style={{ color: COLORS.text, flex: 1, fontFamily: Fonts.regular }}>
           {recordType || 'Select Record Type'}
             </Text>
         <Ionicons name="chevron-down" size={20} color={COLORS.gray} />
@@ -521,7 +520,7 @@ function HealthRecordForm({
                   >
                     <Text style={{ 
                       color: recordType === type ? COLORS.white : COLORS.text,
-                      fontWeight: recordType === type ? 'bold' : 'normal',
+                      fontFamily: recordType === type ? Fonts.bold : Fonts.regular,
                       fontSize: 16
                     }}>
                       {type}
@@ -545,7 +544,7 @@ function HealthRecordForm({
       >
         <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
           <Ionicons name="calendar-outline" size={18} color={COLORS.primary} style={{ marginRight: 8 }} />
-          <Text style={{ color: COLORS.text, fontSize: 16 }}>
+          <Text style={{ color: COLORS.text, fontSize: 16, fontFamily: Fonts.regular }}>
             {eventDate ? eventDate.toDateString() : 'Select Event Date'}
           </Text>
         </View>
@@ -792,7 +791,7 @@ const modalStyles = StyleSheet.create({
   },
   header: {
     fontSize: 28,
-    fontWeight: 'bold',
+    fontFamily: Fonts.bold,
     color: COLORS.text,
     textAlign: 'center',
     marginBottom: 18,
@@ -800,7 +799,7 @@ const modalStyles = StyleSheet.create({
   },
   label: {
     fontSize: 16,
-    fontWeight: '600',
+    fontFamily: Fonts.semiBold,
     color: COLORS.text,
     marginBottom: 8,
     marginTop: 4,
@@ -813,6 +812,7 @@ const modalStyles = StyleSheet.create({
     paddingHorizontal: 16,
     marginBottom: 16,
     fontSize: 16,
+    fontFamily: Fonts.regular,
     backgroundColor: COLORS.white,
     color: COLORS.text,
   },
@@ -832,6 +832,7 @@ const modalStyles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 16,
     fontSize: 16,
+    fontFamily: Fonts.regular,
     backgroundColor: COLORS.white,
   },
   saveButton: {
@@ -851,11 +852,12 @@ const modalStyles = StyleSheet.create({
   saveButtonText: {
     color: COLORS.white,
     fontSize: 18,
-    fontWeight: 'bold',
+    fontFamily: Fonts.bold,
   },
   errorText: {
     color: COLORS.error,
     fontSize: 14,
+    fontFamily: Fonts.regular,
     textAlign: 'center',
     marginBottom: 16,
   },
@@ -865,6 +867,7 @@ const modalStyles = StyleSheet.create({
   },
   reportText: {
     fontSize: 16,
+    fontFamily: Fonts.regular,
     lineHeight: 24,
     color: COLORS.primary,
     textAlign: 'left',
@@ -886,12 +889,13 @@ const modalStyles = StyleSheet.create({
   },
   uploadTitle: {
     fontSize: 18,
-    fontWeight: 'bold',
+    fontFamily: Fonts.bold,
     color: COLORS.primary,
     marginBottom: 8,
   },
   uploadSubtitle: {
     fontSize: 14,
+    fontFamily: Fonts.regular,
     color: COLORS.gray,
     textAlign: 'center',
     marginBottom: 12,
@@ -903,6 +907,7 @@ const modalStyles = StyleSheet.create({
   },
   uploadInfoText: {
     fontSize: 12,
+    fontFamily: Fonts.regular,
     color: COLORS.gray,
     marginLeft: 4,
   },
@@ -924,12 +929,13 @@ const modalStyles = StyleSheet.create({
   },
   fileName: {
     fontSize: 16,
-    fontWeight: 'bold',
+    fontFamily: Fonts.bold,
     color: COLORS.success,
     marginBottom: 4,
   },
   fileSize: {
     fontSize: 14,
+    fontFamily: Fonts.regular,
     color: COLORS.gray,
   },
   removeButton: {
@@ -961,12 +967,12 @@ const modalStyles = StyleSheet.create({
   },
   cancelButtonText: {
     fontSize: 16,
-    fontWeight: '600',
+    fontFamily: Fonts.semiBold,
     color: COLORS.primary,
   },
   uploadButtonText: {
     fontSize: 16,
-    fontWeight: '600',
+    fontFamily: Fonts.semiBold,
     color: COLORS.white,
   },
   loadingContainer: {
@@ -1324,7 +1330,7 @@ export default function Appointments() {
                   onPress={() => setEditModal({ open: true, appointment: item })}
                 >
                   <Ionicons name="create-outline" size={20} color={COLORS.white} />
-                  <Text style={{ color: COLORS.white, fontWeight: 'bold', marginLeft: 8 }}>Edit</Text>
+                  <Text style={{ color: COLORS.white, fontFamily: Fonts.bold, marginLeft: 8 }}>Edit</Text>
                 </TouchableOpacity>
                 {item.attended ? (
                   <TouchableOpacity
@@ -1332,7 +1338,7 @@ export default function Appointments() {
                     disabled={true}
                   >
                     <Ionicons name="checkmark-circle" size={20} color={COLORS.white} />
-                    <Text style={{ color: COLORS.white, fontWeight: 'bold', marginLeft: 8 }}>Attended</Text>
+                    <Text style={{ color: COLORS.white, fontFamily: Fonts.bold, marginLeft: 8 }}>Attended</Text>
                   </TouchableOpacity>
                 ) : (
                   <TouchableOpacity
@@ -1340,7 +1346,7 @@ export default function Appointments() {
                     onPress={() => setAttendedModal({ open: true, appointment: item })}
                   >
                     <Ionicons name="checkmark-circle-outline" size={20} color={COLORS.white} />
-                    <Text style={{ color: COLORS.white, fontWeight: 'bold', marginLeft: 8 }}>Mark Attended</Text>
+                    <Text style={{ color: COLORS.white, fontFamily: Fonts.bold, marginLeft: 8 }}>Mark Attended</Text>
                   </TouchableOpacity>
                 )}
                 <TouchableOpacity
@@ -1404,7 +1410,7 @@ export default function Appointments() {
           )}
           ListEmptyComponent={
             <View style={{ alignItems: 'center', marginTop: 50 }}>
-              <Text style={{ fontSize: 16, color: COLORS.gray }}>No health records found.</Text>
+              <Text style={{ fontSize: 16, fontFamily: Fonts.regular, color: COLORS.gray }}>No health records found.</Text>
             </View>
           }
         />
@@ -1583,7 +1589,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontSize: 22,
     color: COLORS.white,
-    fontWeight: 'bold',
+    fontFamily: Fonts.bold,
     letterSpacing: 1,
   },
 
@@ -1606,7 +1612,7 @@ const styles = StyleSheet.create({
   },
   tabButtonText: {
     color: COLORS.text,
-    fontWeight: 'bold',
+    fontFamily: Fonts.bold,
     fontSize: 16,
   },
   tabButtonTextActive: {
@@ -1629,21 +1635,23 @@ const styles = StyleSheet.create({
   appointmentDate: {
     fontSize: 15,
     color: COLORS.primary,
-    fontWeight: 'bold',
+    fontFamily: Fonts.bold,
   },
   appointmentDoctor: {
     fontSize: 17,
     color: COLORS.text,
-    fontWeight: 'bold',
+    fontFamily: Fonts.bold,
     marginBottom: 2,
   },
   appointmentSpecialty: {
     fontSize: 15,
+    fontFamily: Fonts.regular,
     color: COLORS.gray,
     marginBottom: 2,
   },
   appointmentLocation: {
     fontSize: 14,
+    fontFamily: Fonts.regular,
     color: COLORS.gray,
   },
   attendedBadge: {
@@ -1658,11 +1666,12 @@ const styles = StyleSheet.create({
   attendedText: {
     fontSize: 12,
     color: COLORS.white,
-    fontWeight: 'bold',
+    fontFamily: Fonts.bold,
     marginLeft: 4,
   },
   attendedDate: {
     fontSize: 12,
+    fontFamily: Fonts.regular,
     color: COLORS.gray,
     marginTop: 4,
     fontStyle: 'italic',
@@ -1708,7 +1717,7 @@ const styles = StyleSheet.create({
     marginLeft: 6,
     fontSize: 16,
     color: COLORS.white,
-    fontWeight: 'bold',
+    fontFamily: Fonts.bold,
   },
   modalOverlay: {
     flex: 1,
@@ -1770,7 +1779,7 @@ const styles = StyleSheet.create({
   addDetailsButtonText: {
     fontSize: 14,
     color: COLORS.primary,
-    fontWeight: '600',
+    fontFamily: Fonts.semiBold,
     marginLeft: 6,
   },
   cardIcon: {
@@ -1784,16 +1793,18 @@ const styles = StyleSheet.create({
   },
   cardTitle: {
     fontSize: 17,
-    fontWeight: 'bold',
+    fontFamily: Fonts.bold,
     color: COLORS.text,
   },
   cardSubtitle: {
     fontSize: 15,
+    fontFamily: Fonts.regular,
     color: COLORS.primary,
     marginVertical: 2,
   },
   cardDate: {
     fontSize: 14,
+    fontFamily: Fonts.regular,
     color: COLORS.gray,
   },
 }); 

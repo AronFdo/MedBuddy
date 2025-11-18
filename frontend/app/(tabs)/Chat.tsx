@@ -5,6 +5,7 @@ import { supabase } from '../../lib/supabase';
 import { useProfile } from '../../lib/ProfileContext';
 import { useRouter } from 'expo-router';
 import { BACKEND_URL } from '../../lib/config';
+import { Fonts } from '../../constants/Fonts';
 
 const COLORS = {
   primary: '#25D366',
@@ -647,8 +648,8 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontSize: 22,
     color: COLORS.white,
-    fontWeight: 'bold',
     letterSpacing: 1,
+    fontFamily: Fonts.bold,
   },
   menuButton: {
     width: 32,
@@ -668,12 +669,14 @@ const styles = StyleSheet.create({
     color: COLORS.gray,
     marginTop: 16,
     marginBottom: 8,
+    fontFamily: Fonts.bold,
   },
   noProfileSubtext: {
     fontSize: 16,
     color: COLORS.gray,
     textAlign: 'center',
     lineHeight: 24,
+    fontFamily: Fonts.regular,
   },
   welcomeContainer: {
     flex: 1,
@@ -692,6 +695,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 24,
     marginBottom: 12,
+    fontFamily: Fonts.bold,
   },
   welcomeSubtitle: {
     fontSize: 16,
@@ -699,6 +703,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 24,
     marginBottom: 32,
+    fontFamily: Fonts.regular,
   },
   startChatButton: {
     flexDirection: 'row',
@@ -717,6 +722,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
     marginLeft: 12,
+    fontFamily: Fonts.bold,
   },
   chatView: {
     flex: 1,
@@ -778,6 +784,7 @@ const styles = StyleSheet.create({
   messageText: {
     fontSize: 16,
     lineHeight: 22,
+    fontFamily: Fonts.regular,
   },
   userMessageText: {
     color: TEXT_COLOR,
@@ -790,6 +797,7 @@ const styles = StyleSheet.create({
     color: TEXT_COLOR,
     marginTop: 4,
     opacity: 0.7,
+    fontFamily: Fonts.regular,
   },
   chatInputContainer: {
     flexDirection: 'row',
@@ -808,6 +816,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     maxHeight: 100,
     marginRight: 8,
+    fontFamily: Fonts.regular,
   },
   sendButton: {
     backgroundColor: COLORS.primary,
@@ -851,6 +860,7 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: 'bold',
     color: COLORS.darkGray,
+    fontFamily: Fonts.bold,
   },
   sidebarHeaderButtons: {
     flexDirection: 'row',
@@ -903,9 +913,9 @@ const styles = StyleSheet.create({
   },
   chatHistoryTitle: {
     fontSize: 16,
-    fontWeight: '600',
     color: TEXT_COLOR,
     marginBottom: 2,
+    fontFamily: Fonts.semiBold,
   },
   activeChatHistoryTitle: {
     color: TEXT_COLOR,
@@ -913,6 +923,7 @@ const styles = StyleSheet.create({
   chatHistoryDate: {
     fontSize: 12,
     color: TEXT_COLOR,
+    fontFamily: Fonts.regular,
   },
   emptyHistory: {
     flex: 1,
@@ -926,10 +937,12 @@ const styles = StyleSheet.create({
     color: TEXT_COLOR,
     marginTop: 16,
     marginBottom: 8,
+    fontFamily: Fonts.bold,
   },
   emptyHistorySubtext: {
     fontSize: 14,
     color: TEXT_COLOR,
     textAlign: 'center',
+    fontFamily: Fonts.regular,
   },
 }); 

@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useProfile } from '../../lib/ProfileContext';
 import { supabase } from '../../lib/supabase';
+import { Fonts } from '../../constants/Fonts';
 
 const PROFILE_OPTIONS = [
   { label: 'Myself', value: 'myself' },
@@ -107,7 +108,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 24,
-    fontWeight: 'bold',
+    fontFamily: Fonts.bold,
     color: COLORS.primary,
     marginBottom: 32,
     textAlign: 'center',
@@ -125,7 +126,7 @@ const styles = StyleSheet.create({
   optionText: {
     color: COLORS.primary,
     fontSize: 18,
-    fontWeight: '600',
+    fontFamily: Fonts.semiBold,
   },
 });
 export default ProfileTypeScreen;

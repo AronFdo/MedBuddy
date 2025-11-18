@@ -6,6 +6,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useProfile } from '../../lib/ProfileContext';
 import { useDashboardData } from '../../lib/hooks/useDashboardData';
 import { useQueryClient } from '@tanstack/react-query';
+import { Fonts } from '../../constants/Fonts';
 
 const COLORS = {
   primary: '#307351',
@@ -176,8 +177,8 @@ function QuickStatsCard({ title, value, icon, color }: { title: string; value: s
       <View style={[styles.quickStatsIcon, { backgroundColor: iconBackgroundColor, borderWidth: isDosesMissed ? 0 : 1, borderColor: 'rgba(48, 115, 81, 0.1)' }]}>
         <Ionicons name={icon as any} size={24} color={iconColor} />
       </View>
-      <Text style={[styles.quickStatsValue, { color: textColor }]}>{value}</Text>
-      <Text style={[styles.quickStatsTitle, { color: textColor }]}>{title}</Text>
+      <Text style={[styles.quickStatsValue, { color: textColor }]} numberOfLines={1} adjustsFontSizeToFit={false}>{value}</Text>
+      <Text style={[styles.quickStatsTitle, { color: textColor }]} numberOfLines={2} adjustsFontSizeToFit={false}>{title}</Text>
     </View>
   );
 }
@@ -403,7 +404,7 @@ export default function HomeDashboard() {
       <View style={[styles.container, { justifyContent: 'center', alignItems: 'center', padding: 24 }]}>
         <Ionicons name="person-circle-outline" size={64} color={COLORS.gray} style={{ marginBottom: 16 }} />
         <Text style={[styles.greeting, { color: TEXT_COLOR, textAlign: 'center' }]}>No profile selected</Text>
-        <Text style={{ color: TEXT_COLOR, textAlign: 'center', marginTop: 8 }}>
+        <Text style={{ color: TEXT_COLOR, fontFamily: Fonts.regular, textAlign: 'center', marginTop: 8, flexWrap: 'wrap', paddingHorizontal: 16 }}>
           Please create or select a profile in the Profile tab to view your dashboard.
         </Text>
       </View>
@@ -616,9 +617,11 @@ const styles = StyleSheet.create({
   },
   greeting: {
     fontSize: 24,
-    fontWeight: 'bold',
+    fontFamily: Fonts.bold,
     color: TEXT_COLOR,
     textAlign: 'center',
+    flexWrap: 'wrap',
+    flexShrink: 1,
   },
   quickStatsContainer: {
     marginHorizontal: 20,
@@ -634,7 +637,7 @@ const styles = StyleSheet.create({
     flex: 1,
     aspectRatio: 1.2,
     borderRadius: 20,
-    padding: 20,
+    padding: 16,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
@@ -644,6 +647,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.12,
     shadowRadius: 12,
     elevation: 4,
+    overflow: 'hidden',
   },
   quickStatsIcon: {
     width: 48,
@@ -655,15 +659,20 @@ const styles = StyleSheet.create({
   },
   quickStatsValue: {
     fontSize: 32,
-    fontWeight: '800',
+    fontFamily: Fonts.extraBold,
     color: TEXT_COLOR,
     marginBottom: 8,
+    textAlign: 'center',
   },
   quickStatsTitle: {
     fontSize: 14,
+    fontFamily: Fonts.semiBold,
     color: TEXT_COLOR,
-    fontWeight: '600',
     textAlign: 'center',
+    minHeight: 20,
+    width: '100%',
+    lineHeight: 18,
+    marginTop: 4,
   },
   sectionContainer: {
     marginHorizontal: 16,
@@ -676,9 +685,11 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 18,
-    fontWeight: 'bold',
+    fontFamily: Fonts.bold,
     color: TEXT_COLOR,
     marginLeft: 8,
+    flexWrap: 'wrap',
+    flexShrink: 1,
   },
   notificationsList: {
     backgroundColor: COLORS.lightGray,
@@ -710,17 +721,21 @@ const styles = StyleSheet.create({
   },
   notificationContent: {
     flex: 1,
+    flexShrink: 1,
   },
   notificationTitle: {
     fontSize: 16,
-    fontWeight: 'bold',
+    fontFamily: Fonts.bold,
     color: TEXT_COLOR,
     marginBottom: 2,
+    flexWrap: 'wrap',
   },
   notificationSubtitle: {
     fontSize: 14,
+    fontFamily: Fonts.regular,
     color: TEXT_COLOR,
     marginBottom: 4,
+    flexWrap: 'wrap',
   },
   notificationTimeRow: {
     flexDirection: 'row',
@@ -728,6 +743,7 @@ const styles = StyleSheet.create({
   },
   notificationTime: {
     fontSize: 13,
+    fontFamily: Fonts.regular,
     color: TEXT_COLOR,
     marginLeft: 4,
   },
@@ -760,20 +776,25 @@ const styles = StyleSheet.create({
   },
   activityContent: {
     flex: 1,
+    flexShrink: 1,
   },
   activityTitle: {
     fontSize: 15,
-    fontWeight: 'bold',
+    fontFamily: Fonts.bold,
     color: TEXT_COLOR,
     marginBottom: 2,
+    flexWrap: 'wrap',
   },
   activitySubtitle: {
     fontSize: 13,
+    fontFamily: Fonts.regular,
     color: TEXT_COLOR,
     marginBottom: 2,
+    flexWrap: 'wrap',
   },
   activityTime: {
     fontSize: 12,
+    fontFamily: Fonts.regular,
     color: TEXT_COLOR,
     opacity: 0.8,
   },
@@ -783,14 +804,19 @@ const styles = StyleSheet.create({
   },
   emptyStateTitle: {
     fontSize: 20,
-    fontWeight: 'bold',
+    fontFamily: Fonts.bold,
     color: TEXT_COLOR,
     marginTop: 10,
+    flexWrap: 'wrap',
+    textAlign: 'center',
   },
   emptyStateSubtitle: {
     fontSize: 15,
+    fontFamily: Fonts.regular,
     color: TEXT_COLOR,
     marginTop: 4,
+    flexWrap: 'wrap',
+    textAlign: 'center',
   },
   emptyActivity: {
     alignItems: 'center',
@@ -798,6 +824,9 @@ const styles = StyleSheet.create({
   },
   emptyActivityText: {
     fontSize: 15,
+    fontFamily: Fonts.regular,
     color: TEXT_COLOR,
+    flexWrap: 'wrap',
+    textAlign: 'center',
   },
 }); 

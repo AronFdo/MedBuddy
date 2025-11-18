@@ -12,6 +12,7 @@ import { notificationService } from '../../lib/notificationService';
 import { useMedications } from '../../lib/hooks/useMedications';
 import { useTodayMedicationLogs } from '../../lib/hooks/useMedicationLogs';
 import { useQueryClient } from '@tanstack/react-query';
+import { Fonts } from '../../constants/Fonts';
 
 const COLORS = {
   primary: '#25D366',
@@ -493,7 +494,8 @@ function MultiStepPrescriptionModal({ onSuccess, profileId, accessToken, mealTim
       >
         <Text style={{ 
           color: prescription.issued_date ? COLORS.text : COLORS.gray,
-          fontSize: 16
+          fontSize: 16,
+          fontFamily: Fonts.regular
         }}>
           {prescription.issued_date ? new Date(prescription.issued_date).toLocaleDateString() : 'Select date (optional)'}
         </Text>
@@ -1160,7 +1162,7 @@ const modalStyles = StyleSheet.create({
   },
   header: {
     fontSize: 28,
-    fontWeight: 'bold',
+    fontFamily: Fonts.bold,
     color: COLORS.text,
     textAlign: 'center',
     marginBottom: 18,
@@ -1182,6 +1184,7 @@ const modalStyles = StyleSheet.create({
   uploadText: {
     color: COLORS.gray,
     fontSize: 16,
+    fontFamily: Fonts.regular,
     marginTop: 8,
   },
   saveButton: {
@@ -1194,7 +1197,7 @@ const modalStyles = StyleSheet.create({
   saveButtonText: {
     color: COLORS.white,
     fontSize: 18,
-    fontWeight: 'bold',
+    fontFamily: Fonts.bold,
   },
   input: {
     borderWidth: 1,
@@ -1204,16 +1207,18 @@ const modalStyles = StyleSheet.create({
     paddingHorizontal: 16,
     marginBottom: 16,
     fontSize: 16,
+    fontFamily: Fonts.regular,
     backgroundColor: COLORS.white,
   },
   label: {
     fontSize: 16,
     color: COLORS.text,
     marginBottom: 4,
-    fontWeight: 'bold',
+    fontFamily: Fonts.bold,
   },
   subHeader: {
     fontSize: 14,
+    fontFamily: Fonts.regular,
     color: COLORS.gray,
     marginBottom: 16,
     fontStyle: 'italic',
@@ -1232,11 +1237,12 @@ const modalStyles = StyleSheet.create({
   },
   medicationName: {
     fontSize: 16,
-    fontWeight: 'bold',
+    fontFamily: Fonts.bold,
     color: COLORS.text,
   },
   medicationDetail: {
     fontSize: 14,
+    fontFamily: Fonts.regular,
     color: COLORS.text,
     marginTop: 2,
   },
@@ -1252,6 +1258,7 @@ const modalStyles = StyleSheet.create({
   },
   reminderPreview: {
     fontSize: 12,
+    fontFamily: Fonts.regular,
     color: COLORS.text,
     marginTop: 4,
     fontStyle: 'italic',
@@ -1295,7 +1302,7 @@ const modalStyles = StyleSheet.create({
   },
   mealTimeText: {
     fontSize: 14,
-    fontWeight: 'bold',
+    fontFamily: Fonts.bold,
     color: COLORS.text,
     textAlign: 'center',
   },
@@ -1307,6 +1314,7 @@ const modalStyles = StyleSheet.create({
   },
   mealTimeValue: {
     fontSize: 12,
+    fontFamily: Fonts.regular,
     color: COLORS.text,
     marginTop: 2,
     textAlign: 'center',
@@ -1318,6 +1326,7 @@ const modalStyles = StyleSheet.create({
   },
   selectedMealTimesText: {
     fontSize: 12,
+    fontFamily: Fonts.regular,
     color: COLORS.text,
     marginTop: 8,
     fontStyle: 'italic',
@@ -1340,7 +1349,7 @@ const modalStyles = StyleSheet.create({
   ocrButtonText: {
     color: COLORS.white,
     fontSize: 16,
-    fontWeight: 'bold',
+    fontFamily: Fonts.bold,
     marginLeft: 8,
   },
   ocrButtonScanning: {
@@ -1936,8 +1945,8 @@ export default function Medications() {
                     const progress = getDoseProgress(medication.reminder_times, logs, medication.medication_id, medication.frequency || 1);
                     return (
                       <View key={medication.medication_id} style={styles.medicationCard} accessible={true} accessibilityLabel={`Medication card for ${medication.name}`}>
-                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                          <Text style={styles.medicationName}>{medication.name || 'Unnamed Medication'}</Text>
+                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap' }}>
+                          <Text style={[styles.medicationName, { flexShrink: 1 }]}>{medication.name || 'Unnamed Medication'}</Text>
                           <View style={{ width: 120 }}>
                             {progress.taken === 0 ? (
                               <View style={[styles.statusPill, styles.statusPending]}>
@@ -1959,10 +1968,10 @@ export default function Medications() {
                         </View>
                         <View style={{ flexDirection: 'row', marginTop: 4, marginBottom: 2 }}>
                           {medication.dosage && (
-                            <Text style={styles.medicationDetail}>Dosage: <Text style={{ fontWeight: 'bold' }}>{medication.dosage}</Text></Text>
+                            <Text style={styles.medicationDetail}>Dosage: <Text style={{ fontFamily: Fonts.bold }}>{medication.dosage}</Text></Text>
                           )}
                           {medication.frequency && (
-                            <Text style={[styles.medicationDetail, { marginLeft: 16 }]}>Frequency: <Text style={{ fontWeight: 'bold' }}>{medication.frequency}</Text></Text>
+                            <Text style={[styles.medicationDetail, { marginLeft: 16 }]}>Frequency: <Text style={{ fontFamily: Fonts.bold }}>{medication.frequency}</Text></Text>
                           )}
                         </View>
                         <Text style={styles.medicationDetail}>
@@ -1979,7 +1988,7 @@ export default function Medications() {
                                 <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 2 }}>
                                   <Ionicons name="close-circle" size={16} color={COLORS.error} style={{ marginRight: 4 }} />
                                   <Text style={[styles.medicationDetail, { color: COLORS.error }]}>
-                                    Last missed: <Text style={{ fontWeight: 'bold' }}>{lastMissedTime}</Text>
+                                    Last missed: <Text style={{ fontFamily: Fonts.bold }}>{lastMissedTime}</Text>
                                   </Text>
                                 </View>
                               ) : null;
@@ -1987,7 +1996,7 @@ export default function Medications() {
                             
                             {/* Show next dose */}
                             <Text style={[styles.medicationDetail, { marginBottom: 4 }]}>
-                              Next dose: <Text style={{ fontWeight: 'bold' }}>{getNextDoseTime(medication.reminder_times, logs, medication.medication_id, medication.days_remaining, medication.frequency || 1)}</Text>
+                              Next dose: <Text style={{ fontFamily: Fonts.bold }}>{getNextDoseTime(medication.reminder_times, logs, medication.medication_id, medication.days_remaining, medication.frequency || 1)}</Text>
                             </Text>
                           </>
                         )}
@@ -2204,7 +2213,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontSize: 22,
     color: COLORS.white,
-    fontWeight: 'bold',
+    fontFamily: Fonts.bold,
     letterSpacing: 1,
   },
   tabContainer: {
@@ -2226,7 +2235,7 @@ const styles = StyleSheet.create({
   },
   tabText: {
     fontSize: 16,
-    fontWeight: 'bold',
+    fontFamily: Fonts.bold,
     color: COLORS.text,
   },
   activeTabText: {
@@ -2249,7 +2258,7 @@ const styles = StyleSheet.create({
     marginLeft: 6,
     fontSize: 16,
     color: COLORS.white,
-    fontWeight: 'bold',
+    fontFamily: Fonts.bold,
   },
   centered: {
     flex: 1,
@@ -2258,11 +2267,13 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 16,
+    fontFamily: Fonts.regular,
     color: COLORS.text,
     textAlign: 'center',
   },
   errorText: {
     fontSize: 16,
+    fontFamily: Fonts.regular,
     color: COLORS.error,
     textAlign: 'center',
   },
@@ -2277,11 +2288,12 @@ const styles = StyleSheet.create({
   },
   medicationName: {
     fontSize: 18,
+    fontFamily: Fonts.bold,
     color: COLORS.text,
-    fontWeight: 'bold',
   },
   medicationDetail: {
     fontSize: 15,
+    fontFamily: Fonts.regular,
     color: COLORS.text,
     marginTop: 2,
   },
@@ -2395,7 +2407,7 @@ const styles = StyleSheet.create({
   },
   statusText: {
     color: '#fff',
-    fontWeight: 'bold',
+    fontFamily: Fonts.bold,
     fontSize: 14,
   },
   cardActionsRow: {
@@ -2419,7 +2431,7 @@ const styles = StyleSheet.create({
   },
   cardActionText: {
     color: '#fff',
-    fontWeight: 'bold',
+    fontFamily: Fonts.bold,
     marginLeft: 6,
     fontSize: 15,
   },
@@ -2449,7 +2461,7 @@ const styles = StyleSheet.create({
   progressBarText: {
     flex: 1,
     textAlign: 'center',
-    fontWeight: 'bold',
+    fontFamily: Fonts.bold,
     fontSize: 13,
     zIndex: 1,
   },
@@ -2467,11 +2479,13 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   sectionHeaderTitle: {
-    fontWeight: 'bold',
+    fontFamily: Fonts.bold,
     fontSize: 17,
     color: COLORS.text,
   },
   sectionHeaderNotes: {
+    fontSize: 14,
+    fontFamily: Fonts.regular,
     color: '#555',
     fontStyle: 'italic',
     marginTop: 2,
@@ -2506,13 +2520,14 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   prescriptionTitle: {
-    fontWeight: 'bold',
+    fontFamily: Fonts.bold,
     fontSize: 18,
     color: COLORS.white,
     marginBottom: 4,
   },
   prescriptionNotes: {
     color: '#e8f5e8',
+    fontFamily: Fonts.regular,
     fontStyle: 'italic',
     fontSize: 14,
   },

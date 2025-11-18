@@ -8,6 +8,7 @@ import * as FileSystem from 'expo-file-system';
 
 import { useProfile } from '../../lib/ProfileContext';
 import NotificationSettings from '../../components/NotificationSettings';
+import { Fonts } from '../../constants/Fonts';
 
 const COLORS = {
   primary: '#25D366',
@@ -605,9 +606,9 @@ function CreateProfileModal({ visible, onClose, onCreated, userId }: { visible: 
           <TouchableOpacity style={{ position: 'absolute', top: 12, right: 12, zIndex: 10, backgroundColor: COLORS.lightGray, borderRadius: 16, padding: 4 }} onPress={onClose}>
             <Ionicons name="close" size={24} color={COLORS.text} />
           </TouchableOpacity>
-          <Text style={{ fontSize: 22, fontWeight: 'bold', marginBottom: 18, color: COLORS.text, textAlign: 'center' }}>Create Profile</Text>
+          <Text style={{ fontSize: 22, fontFamily: Fonts.bold, marginBottom: 18, color: COLORS.text, textAlign: 'center' }}>Create Profile</Text>
           <TextInput
-            style={{ borderWidth: 1, borderColor: COLORS.lightGray, borderRadius: 8, padding: 12, marginBottom: 12, fontSize: 16, color: COLORS.text, backgroundColor: COLORS.white }}
+            style={{ borderWidth: 1, borderColor: COLORS.lightGray, borderRadius: 8, padding: 12, marginBottom: 12, fontSize: 16, fontFamily: Fonts.regular, color: COLORS.text, backgroundColor: COLORS.white }}
             placeholder="Name"
             placeholderTextColor={COLORS.gray}
             value={name}
@@ -615,7 +616,7 @@ function CreateProfileModal({ visible, onClose, onCreated, userId }: { visible: 
             autoCapitalize="words"
           />
           <TextInput
-            style={{ borderWidth: 1, borderColor: COLORS.lightGray, borderRadius: 8, padding: 12, marginBottom: 12, fontSize: 16, color: COLORS.text, backgroundColor: COLORS.white }}
+            style={{ borderWidth: 1, borderColor: COLORS.lightGray, borderRadius: 8, padding: 12, marginBottom: 12, fontSize: 16, fontFamily: Fonts.regular, color: COLORS.text, backgroundColor: COLORS.white }}
             placeholder="Age"
             placeholderTextColor={COLORS.gray}
             value={age}
@@ -675,7 +676,7 @@ function CreateProfileModal({ visible, onClose, onCreated, userId }: { visible: 
             onPress={handleCreate}
             disabled={!name || !age || !gender || !profileType || loading}
           >
-            {loading ? <ActivityIndicator color={COLORS.white} /> : <Text style={{ color: COLORS.white, fontWeight: 'bold', fontSize: 16 }}>Create</Text>}
+            {loading ? <ActivityIndicator color={COLORS.white} /> : <Text style={{ color: COLORS.white, fontFamily: Fonts.bold, fontSize: 16 }}>Create</Text>}
           </TouchableOpacity>
         </View>
       </View>
@@ -880,7 +881,7 @@ function EditProfileModal({ visible, onClose, profile, onSave }: { visible: bool
           <TouchableOpacity style={{ position: 'absolute', top: 12, right: 12, zIndex: 10, backgroundColor: COLORS.lightGray, borderRadius: 16, padding: 4 }} onPress={onClose}>
             <Ionicons name="close" size={24} color={COLORS.text} />
           </TouchableOpacity>
-          <Text style={{ fontSize: 22, fontWeight: 'bold', marginBottom: 18, color: COLORS.text, textAlign: 'center' }}>Edit Profile</Text>
+          <Text style={{ fontSize: 22, fontFamily: Fonts.bold, marginBottom: 18, color: COLORS.text, textAlign: 'center' }}>Edit Profile</Text>
           <TouchableOpacity onPress={pickImage} style={{ alignSelf: 'center', marginBottom: 16 }}>
             {profilePic ? (
               <Image source={{ uri: profilePic }} style={{ width: 80, height: 80, borderRadius: 40, borderWidth: 2, borderColor: COLORS.primary }} />
@@ -889,10 +890,10 @@ function EditProfileModal({ visible, onClose, profile, onSave }: { visible: bool
                 <Ionicons name="camera" size={32} color={COLORS.text} />
               </View>
             )}
-            <Text style={{ color: COLORS.text, marginTop: 6, fontWeight: 'bold' }}>Change Photo</Text>
+            <Text style={{ color: COLORS.text, marginTop: 6, fontFamily: Fonts.bold }}>Change Photo</Text>
           </TouchableOpacity>
           <TextInput
-            style={{ borderWidth: 1, borderColor: COLORS.lightGray, borderRadius: 8, padding: 12, marginBottom: 12, fontSize: 16, color: COLORS.text, backgroundColor: COLORS.white }}
+            style={{ borderWidth: 1, borderColor: COLORS.lightGray, borderRadius: 8, padding: 12, marginBottom: 12, fontSize: 16, fontFamily: Fonts.regular, color: COLORS.text, backgroundColor: COLORS.white }}
             placeholder="Name"
             placeholderTextColor={COLORS.gray}
             value={name}
@@ -900,7 +901,7 @@ function EditProfileModal({ visible, onClose, profile, onSave }: { visible: bool
             autoCapitalize="words"
           />
           <TextInput
-            style={{ borderWidth: 1, borderColor: COLORS.lightGray, borderRadius: 8, padding: 12, marginBottom: 12, fontSize: 16, color: COLORS.text, backgroundColor: COLORS.white }}
+            style={{ borderWidth: 1, borderColor: COLORS.lightGray, borderRadius: 8, padding: 12, marginBottom: 12, fontSize: 16, fontFamily: Fonts.regular, color: COLORS.text, backgroundColor: COLORS.white }}
             placeholder="Age"
             placeholderTextColor={COLORS.gray}
             value={age}
@@ -960,7 +961,7 @@ function EditProfileModal({ visible, onClose, profile, onSave }: { visible: bool
             onPress={handleSave}
             disabled={!name || !age || !gender || !profileType || uploading}
           >
-            {uploading ? <ActivityIndicator color={COLORS.white} /> : <Text style={{ color: COLORS.white, fontWeight: 'bold', fontSize: 16 }}>Save</Text>}
+            {uploading ? <ActivityIndicator color={COLORS.white} /> : <Text style={{ color: COLORS.white, fontFamily: Fonts.bold, fontSize: 16 }}>Save</Text>}
           </TouchableOpacity>
         </View>
       </View>
@@ -1169,12 +1170,12 @@ export default function Profile() {
             <TouchableOpacity style={{ position: 'absolute', top: 12, right: 12, zIndex: 10, backgroundColor: COLORS.lightGray, borderRadius: 16, padding: 4 }} onPress={() => setShowSwitchModal(false)}>
               <Ionicons name="close" size={24} color={COLORS.text} />
             </TouchableOpacity>
-            <Text style={{ fontSize: 22, fontWeight: 'bold', marginBottom: 20, color: COLORS.text, textAlign: 'center' }}>Switch Profile</Text>
+            <Text style={{ fontSize: 22, fontFamily: Fonts.bold, marginBottom: 20, color: COLORS.text, textAlign: 'center' }}>Switch Profile</Text>
             {profiles.length === 0 ? (
               <View style={{ alignItems: 'center', marginTop: 32 }}>
-                <Text style={{ marginBottom: 18, fontSize: 16, color: COLORS.gray }}>No profiles found.</Text>
+                <Text style={{ marginBottom: 18, fontSize: 16, fontFamily: Fonts.regular, color: COLORS.gray }}>No profiles found.</Text>
                 <TouchableOpacity style={{ backgroundColor: COLORS.primary, borderRadius: 8, paddingVertical: 14, paddingHorizontal: 32, marginTop: 8 }} onPress={() => openCreateProfile(setShowSwitchModal, setShowCreateModal)}>
-                  <Text style={{ color: COLORS.white, fontWeight: 'bold', fontSize: 16 }}>Create Profile</Text>
+                  <Text style={{ color: COLORS.white, fontFamily: Fonts.bold, fontSize: 16 }}>Create Profile</Text>
                 </TouchableOpacity>
               </View>
             ) : (
@@ -1204,8 +1205,8 @@ export default function Profile() {
                       accessibilityLabel={`Switch to profile ${item.name || 'Unnamed Profile'}`}
                     >
                       <View style={{ flex: 1 }}>
-                        <Text style={{ color: COLORS.text, fontWeight: 'bold', fontSize: 17 }}>{item.name || 'Unnamed Profile'}</Text>
-                        <Text style={{ color: COLORS.gray, fontSize: 15 }}>{item.age ? `${item.age} years` : ''} {item.gender || ''}</Text>
+                        <Text style={{ color: COLORS.text, fontFamily: Fonts.bold, fontSize: 17 }}>{item.name || 'Unnamed Profile'}</Text>
+                        <Text style={{ color: COLORS.gray, fontSize: 15, fontFamily: Fonts.regular }}>{item.age ? `${item.age} years` : ''} {item.gender || ''}</Text>
                       </View>
                       {isSelected && (
                         <Ionicons name="checkmark-circle" size={24} color={COLORS.text} style={{ marginLeft: 8 }} />
@@ -1213,7 +1214,7 @@ export default function Profile() {
                     </TouchableOpacity>
                   );
                 }}
-                ListFooterComponent={<TouchableOpacity style={{ marginTop: 18, backgroundColor: COLORS.primary, borderRadius: 8, paddingVertical: 14, alignItems: 'center' }} onPress={() => openCreateProfile(setShowSwitchModal, setShowCreateModal)}><Text style={{ color: COLORS.white, fontWeight: 'bold', fontSize: 16 }}>Create Profile</Text></TouchableOpacity>}
+                ListFooterComponent={<TouchableOpacity style={{ marginTop: 18, backgroundColor: COLORS.primary, borderRadius: 8, paddingVertical: 14, alignItems: 'center' }} onPress={() => openCreateProfile(setShowSwitchModal, setShowCreateModal)}><Text style={{ color: COLORS.white, fontFamily: Fonts.bold, fontSize: 16 }}>Create Profile</Text></TouchableOpacity>}
               />
             )}
           </View>
@@ -1273,7 +1274,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontSize: 22,
     color: COLORS.white,
-    fontWeight: 'bold',
+    fontFamily: Fonts.bold,
     letterSpacing: 1,
   },
   profileHeader: {
@@ -1336,9 +1337,11 @@ const styles = StyleSheet.create({
   },
   profileName: {
     fontSize: 24,
-    fontWeight: 'bold',
+    fontFamily: Fonts.bold,
     color: COLORS.text,
     textAlign: 'center',
+    flexWrap: 'wrap',
+    flexShrink: 1,
   },
   profileDetailsRow: {
     flexDirection: 'row',
@@ -1353,8 +1356,11 @@ const styles = StyleSheet.create({
   },
   profileDetail: {
     fontSize: 16,
+    fontFamily: Fonts.regular,
     color: COLORS.gray,
     marginHorizontal: 6,
+    flexWrap: 'wrap',
+    flexShrink: 1,
   },
   section: {
     marginTop: 16,
@@ -1362,9 +1368,11 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 18,
-    fontWeight: 'bold',
+    fontFamily: Fonts.bold,
     color: COLORS.text,
     marginBottom: 12,
+    flexWrap: 'wrap',
+    flexShrink: 1,
   },
   timelineContainer: {
     paddingLeft: 10,
@@ -1390,18 +1398,22 @@ const styles = StyleSheet.create({
   },
   timelineDate: {
     fontSize: 14,
+    fontFamily: Fonts.regular,
     color: COLORS.gray,
   },
   timelineTitle: {
     fontSize: 16,
-    fontWeight: 'bold',
+    fontFamily: Fonts.bold,
     color: COLORS.text,
     marginTop: 2,
+    flexWrap: 'wrap',
   },
   timelineDetails: {
     fontSize: 14,
+    fontFamily: Fonts.regular,
     color: COLORS.text,
     marginTop: 4,
+    flexWrap: 'wrap',
   },
   card: {
     backgroundColor: 'rgba(240, 249, 244, 0.95)',
@@ -1424,9 +1436,10 @@ const styles = StyleSheet.create({
   },
   cardTitle: {
     fontSize: 18,
-    fontWeight: 'bold',
+    fontFamily: Fonts.bold,
     color: COLORS.text,
     marginLeft: 8,
+    flexWrap: 'wrap',
   },
   cardItem: {
     flexDirection: 'row',
@@ -1434,13 +1447,18 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderBottomWidth: 1,
     borderBottomColor: '#F3F4F6',
+    flexWrap: 'wrap',
   },
   cardItemText: {
     fontSize: 16,
+    fontFamily: Fonts.regular,
     color: COLORS.text,
+    flexShrink: 1,
+    flexWrap: 'wrap',
   },
   cardItemDate: {
     fontSize: 14,
+    fontFamily: Fonts.regular,
     color: COLORS.gray,
   },
   actionButtonsContainer: {
@@ -1468,7 +1486,7 @@ const styles = StyleSheet.create({
   },
   actionButtonText: {
     color: COLORS.white,
-    fontWeight: 'bold',
+    fontFamily: Fonts.bold,
     fontSize: 16,
   },
   secondaryActionButton: {
@@ -1494,7 +1512,7 @@ const styles = StyleSheet.create({
   },
   switchProfileButtonText: {
     color: COLORS.white,
-    fontWeight: 'bold',
+    fontFamily: Fonts.bold,
     fontSize: 16,
   },
   // Sidebar styles
@@ -1528,7 +1546,7 @@ const styles = StyleSheet.create({
   },
   sidebarTitle: {
     fontSize: 20,
-    fontWeight: 'bold',
+    fontFamily: Fonts.bold,
     color: COLORS.text,
   },
   sidebarCloseButton: {
@@ -1549,7 +1567,7 @@ const styles = StyleSheet.create({
   sidebarMenuItemText: {
     flex: 1,
     fontSize: 16,
-    fontWeight: '600',
+    fontFamily: Fonts.semiBold,
     color: COLORS.text,
     marginLeft: 12,
   },
@@ -1580,6 +1598,7 @@ const styles = StyleSheet.create({
   profileTextInfo: {
     marginLeft: 16,
     flex: 1,
+    flexShrink: 1,
   },
   settingsButton: {
     width: 40,
@@ -1636,7 +1655,7 @@ const customizeStyles = StyleSheet.create({
   },
   modalTitle: {
     fontSize: 20,
-    fontWeight: 'bold',
+    fontFamily: Fonts.bold,
     color: COLORS.text,
   },
   closeButton: {
@@ -1655,12 +1674,13 @@ const customizeStyles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 18,
-    fontWeight: 'bold',
+    fontFamily: Fonts.bold,
     color: COLORS.text,
     marginLeft: 8,
   },
   sectionDescription: {
     fontSize: 14,
+    fontFamily: Fonts.regular,
     color: COLORS.gray,
     marginBottom: 16,
     lineHeight: 20,
@@ -1670,7 +1690,7 @@ const customizeStyles = StyleSheet.create({
   },
   timeLabel: {
     fontSize: 16,
-    fontWeight: '600',
+    fontFamily: Fonts.semiBold,
     color: COLORS.text,
     marginBottom: 8,
   },
@@ -1680,6 +1700,7 @@ const customizeStyles = StyleSheet.create({
     borderRadius: 8,
     padding: 12,
     fontSize: 16,
+    fontFamily: Fonts.regular,
     backgroundColor: COLORS.white,
   },
   timeInputError: {
@@ -1689,11 +1710,13 @@ const customizeStyles = StyleSheet.create({
   timeErrorText: {
     color: COLORS.error,
     fontSize: 12,
+    fontFamily: Fonts.regular,
     marginTop: 4,
   },
   errorText: {
     color: COLORS.error,
     fontSize: 14,
+    fontFamily: Fonts.regular,
     marginTop: 8,
     textAlign: 'center',
   },
@@ -1714,7 +1737,7 @@ const customizeStyles = StyleSheet.create({
   cancelButtonText: {
     color: '#011A05',
     fontSize: 16,
-    fontWeight: '600',
+    fontFamily: Fonts.semiBold,
   },
   saveButton: {
     flex: 1,
@@ -1729,6 +1752,6 @@ const customizeStyles = StyleSheet.create({
   saveButtonText: {
     color: COLORS.white,
     fontSize: 16,
-    fontWeight: '600',
+    fontFamily: Fonts.semiBold,
   },
 }); 

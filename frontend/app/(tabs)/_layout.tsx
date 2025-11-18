@@ -6,6 +6,7 @@ import { View, Image } from 'react-native';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { useProfile } from '@/lib/ProfileContext';
+import { Fonts } from '@/constants/Fonts';
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
@@ -24,6 +25,10 @@ export default function TabLayout() {
         tabBarItemStyle: {
           justifyContent: 'center',
           alignItems: 'center',
+        },
+        tabBarLabelStyle: {
+          fontFamily: Fonts.regular,
+          fontSize: 12,
         },
         headerShown: false,
       }}>

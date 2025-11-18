@@ -10,10 +10,12 @@ import {
   Platform,
   ScrollView,
   ActivityIndicator,
+  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { supabase } from '../../lib/supabase';
 import { useRouter } from 'expo-router';
+import { Fonts } from '../../constants/Fonts';
 
 const COLORS = {
   primary: '#25D366',
@@ -148,9 +150,11 @@ function SignInScreen() {
         <ScrollView contentContainerStyle={styles.scrollContent}>
           {/* Logo Section */}
           <View style={styles.logoContainer}>
-            <View style={styles.logoPlaceholder}>
-              <Text style={styles.logoText}>MedBuddy</Text>
-            </View>
+            <Image
+              source={require('../../assets/images/MedBuddy Logo.png')}
+              style={styles.logoImage}
+              resizeMode="contain"
+            />
             <Text style={styles.tagline}>
               Your Health Companion
             </Text>
@@ -215,7 +219,7 @@ function SignInScreen() {
                       }}
                       onPress={() => setGender(option)}
                     >
-                      <Text style={{ color: gender === option ? COLORS.white : COLORS.text }}>{option}</Text>
+                      <Text style={{ color: gender === option ? COLORS.white : COLORS.text, fontFamily: Fonts.regular }}>{option}</Text>
                     </TouchableOpacity>
                   ))}
                 </View>
@@ -333,42 +337,27 @@ const styles = StyleSheet.create({
   },
   logoContainer: {
     alignItems: 'center',
-    marginTop: 40,
-    marginBottom: 60,
+    marginTop: 5,
+    marginBottom: 80,
   },
-  logoPlaceholder: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    backgroundColor: COLORS.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 16,
-    shadowColor: COLORS.primary,
-    shadowOffset: {
-      width: 0,
-      height: 8,
-    },
-    shadowOpacity: 0.3,
-    shadowRadius: 16,
-    elevation: 8,
-  },
-  logoText: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: COLORS.white,
+  logoImage: {
+    width: 300,
+    height: 120
+    ,
+    marginBottom: 0,
   },
   tagline: {
     fontSize: 16,
     color: COLORS.gray,
     textAlign: 'center',
+    fontFamily: Fonts.regular,
   },
   formContainer: {
     flex: 1,
   },
   title: {
     fontSize: 28,
-    fontWeight: 'bold',
+    fontFamily: Fonts.bold,
     color: COLORS.text,
     marginBottom: 8,
     textAlign: 'center',
@@ -378,13 +367,14 @@ const styles = StyleSheet.create({
     color: COLORS.gray,
     textAlign: 'center',
     marginBottom: 32,
+    fontFamily: Fonts.regular,
   },
   inputContainer: {
     marginBottom: 20,
   },
   label: {
     fontSize: 14,
-    fontWeight: '600',
+    fontFamily: Fonts.semiBold,
     color: COLORS.text,
     marginBottom: 8,
   },
@@ -397,6 +387,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     backgroundColor: COLORS.white,
     color: COLORS.text,
+    fontFamily: Fonts.regular,
   },
   button: {
     backgroundColor: COLORS.primary,
@@ -419,7 +410,7 @@ const styles = StyleSheet.create({
   buttonText: {
     color: COLORS.white,
     fontSize: 16,
-    fontWeight: '600',
+    fontFamily: Fonts.semiBold,
   },
   forgotPasswordButton: {
     alignItems: 'center',
@@ -428,7 +419,7 @@ const styles = StyleSheet.create({
   forgotPasswordText: {
     color: COLORS.text,
     fontSize: 14,
-    fontWeight: '500',
+    fontFamily: Fonts.medium,
     textDecorationLine: 'underline',
   },
   toggleContainer: {
@@ -441,6 +432,7 @@ const styles = StyleSheet.create({
   toggleText: {
     fontSize: 14,
     color: COLORS.gray,
+    fontFamily: Fonts.regular,
   },
   toggleButton: {
     marginLeft: 8,
@@ -448,7 +440,7 @@ const styles = StyleSheet.create({
   toggleButtonText: {
     fontSize: 14,
     color: COLORS.text,
-    fontWeight: '600',
+    fontFamily: Fonts.semiBold,
     textDecorationLine: 'underline',
   },
 });
