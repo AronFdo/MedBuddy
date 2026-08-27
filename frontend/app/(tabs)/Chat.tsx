@@ -252,12 +252,16 @@ export default function Chat() {
     
     try {
       // Load messages from ai_conversations table using profile_id
-      const { data: messages } = await supabase
+      const { data: messages, error } = await supabase
         .from('ai_conversations')
         .select('*')
         .eq('profile_id', profile.id)
         .order('created_at', { ascending: true })
         .limit(100); // Limit to recent conversation history
+
+      if (error) {
+        console.error('Error loading conversations:', error);
+      }
 
       if (messages && messages.length > 0) {
         // Group messages into conversations (for now, treat all as one conversation)
@@ -277,9 +281,8 @@ export default function Chat() {
         setConversations([conversation]);
         setActiveConversation(conversation);
       } else {
-        // No existing conversations for this profile
-        setConversations([]);
-        setActiveConversation(null);
+        // No history — start a fresh conversation automatically
+        await createNewConversation();
       }
     } catch (error) {
       console.error('Error loading conversations:', error);
@@ -327,7 +330,22 @@ export default function Chat() {
 
   // Send message
   const sendMessage = async (messageText: string) => {
-    if (!activeConversation || !profile) return;
+    if (!profile) {
+      Alert.alert('No profile', 'Please select a profile before chatting.');
+      return;
+    }
+
+    let conversation = activeConversation;
+    if (!conversation) {
+      await createNewConversation();
+      conversation = {
+        id: 'main-conversation',
+        title: 'Chat with MedBuddy',
+        messages: [],
+        created_at: new Date(),
+        updated_at: new Date(),
+      };
+    }
 
     setLoading(true);
     
@@ -340,18 +358,20 @@ export default function Chat() {
     };
 
     const updatedConversation = {
-      ...activeConversation,
-      messages: [...activeConversation.messages, userMessage],
-      title: activeConversation.messages.length === 0 ? messageText.substring(0, 30) + '...' : activeConversation.title,
+      ...conversation,
+      messages: [...conversation.messages, userMessage],
+      title: conversation.messages.length === 0 ? messageText.substring(0, 30) + '...' : conversation.title,
       updated_at: new Date()
     };
 
     setActiveConversation(updatedConversation);
-    setConversations(prev => 
-      prev.map(conv => 
+    setConversations(prev => {
+      const exists = prev.some(conv => conv.id === updatedConversation.id);
+      if (!exists) return [updatedConversation];
+      return prev.map(conv => 
         conv.id === updatedConversation.id ? updatedConversation : conv
-      )
-    );
+      );
+    });
 
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -427,23 +447,7 @@ export default function Chat() {
           conv.id === finalConversation.id ? finalConversation : conv
         )
       );
-
-                    // Save both user and bot messages to database
-        if (profile) {
-          // Save user message
-          await supabase.from('ai_conversations').insert({
-            profile_id: profile.id,
-            message: messageText,
-            sender: 'user'
-          });
-
-          // Save bot message
-          await supabase.from('ai_conversations').insert({
-            profile_id: profile.id,
-            message: json.response,
-            sender: 'bot'
-          });
-        }
+      // Messages are persisted by the backend /api/ai-chat route
 
     } catch (error) {
       console.error('=== AI Chat Error ===');
@@ -525,6 +529,7 @@ export default function Chat() {
 
   // Load conversations on mount and when profile changes
   useEffect(() => {
+    if (!profile) return;
     loadConversations();
   }, [profile]);
 

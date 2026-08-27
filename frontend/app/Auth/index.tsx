@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -13,9 +13,22 @@ import {
   Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../../lib/supabase';
 import { useRouter } from 'expo-router';
+import * as Linking from 'expo-linking';
 import { Fonts } from '../../constants/Fonts';
+import {
+  authenticateWithBiometrics,
+  canUseBiometrics,
+  clearBiometricSession,
+  enableBiometricsWithSession,
+  getBiometricLabel,
+  getStoredSessionTokens,
+  isBiometricEnabled,
+  saveSessionForBiometrics,
+} from '../../lib/biometricAuth';
+import type { Session } from '@supabase/supabase-js';
 
 const COLORS = {
   primary: '#25D366',
@@ -34,21 +47,114 @@ function SignInScreen() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [biometricLoading, setBiometricLoading] = useState(false);
+  const [checkingAuth, setCheckingAuth] = useState(true);
+  const [biometricAvailable, setBiometricAvailable] = useState(false);
+  const [biometricUnlockAvailable, setBiometricUnlockAvailable] = useState(false);
+  const [biometricLabel, setBiometricLabel] = useState('Biometrics');
   const [name, setName] = useState('');
   const [age, setAge] = useState('');
   const [gender, setGender] = useState('');
 
-  useEffect(() => {
-    const checkSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        router.replace('/(tabs)/HomeDashboard');
-      }
-    };
-    checkSession();
+  const offerEnableBiometrics = useCallback(async (session: Session) => {
+    const available = await canUseBiometrics();
+    if (!available) {
+      return;
+    }
+
+    const label = await getBiometricLabel();
+    Alert.alert(
+      `Enable ${label}?`,
+      `Use ${label} to unlock MedBuddy next time without typing your password.`,
+      [
+        { text: 'Not Now', style: 'cancel' },
+        {
+          text: 'Enable',
+          onPress: async () => {
+            const enabled = await enableBiometricsWithSession(session);
+            if (enabled) {
+              Alert.alert('Enabled', `${label} unlock is now turned on.`);
+            }
+          },
+        },
+      ]
+    );
   }, []);
 
-  console.log('SignInScreen is rendering');
+  const unlockWithBiometrics = useCallback(async () => {
+    setBiometricLoading(true);
+    try {
+      const result = await authenticateWithBiometrics();
+      if (!result.success) {
+        return;
+      }
+
+      const tokens = await getStoredSessionTokens();
+      if (!tokens) {
+        Alert.alert('Sign in required', 'Please sign in with your email and password once to enable biometric unlock.');
+        await clearBiometricSession();
+        setBiometricUnlockAvailable(false);
+        return;
+      }
+
+      const { data, error } = await supabase.auth.setSession({
+        access_token: tokens.accessToken,
+        refresh_token: tokens.refreshToken,
+      });
+
+      if (error || !data.session) {
+        Alert.alert('Session expired', 'Please sign in again with your email and password.');
+        await clearBiometricSession();
+        setBiometricUnlockAvailable(false);
+        return;
+      }
+
+      await saveSessionForBiometrics(data.session);
+      router.replace('/(tabs)/HomeDashboard');
+    } catch (error) {
+      console.error('Biometric unlock error:', error);
+      Alert.alert('Error', 'Biometric unlock failed. Please sign in with your password.');
+    } finally {
+      setBiometricLoading(false);
+    }
+  }, [router]);
+
+  useEffect(() => {
+    const bootstrap = async () => {
+      try {
+        const [available, enabled, label, tokens, sessionResult] = await Promise.all([
+          canUseBiometrics(),
+          isBiometricEnabled(),
+          getBiometricLabel(),
+          getStoredSessionTokens(),
+          supabase.auth.getSession(),
+        ]);
+
+        setBiometricAvailable(available);
+        setBiometricLabel(label);
+        const canUnlock = available && enabled && !!tokens;
+        setBiometricUnlockAvailable(canUnlock);
+
+        if (canUnlock) {
+          // Require biometrics before entering the app
+          setCheckingAuth(false);
+          await unlockWithBiometrics();
+          return;
+        }
+
+        if (sessionResult.data.session) {
+          router.replace('/(tabs)/HomeDashboard');
+          return;
+        }
+      } catch (error) {
+        console.error('Auth bootstrap error:', error);
+      } finally {
+        setCheckingAuth(false);
+      }
+    };
+
+    bootstrap();
+  }, [router, unlockWithBiometrics]);
 
   const handleAuth = async () => {
     if (!email || !password) {
@@ -91,6 +197,7 @@ function SignInScreen() {
         } else if (!data.session) {
           Alert.alert('Error', 'No session found. Please try signing in.');
         } else {
+          await saveSessionForBiometrics(data.session);
           router.push({ pathname: '/Auth/profile-type', params: { name, age, gender } });
         }
       } else {
@@ -101,6 +208,11 @@ function SignInScreen() {
         } else if (!data.session) {
           Alert.alert('Error', 'No session found. Please try again.');
         } else {
+          await saveSessionForBiometrics(data.session);
+          const enabled = await isBiometricEnabled();
+          if (biometricAvailable && !enabled) {
+            await offerEnableBiometrics(data.session);
+          }
           router.replace('/(tabs)/HomeDashboard');
         }
       }
@@ -124,7 +236,7 @@ function SignInScreen() {
 
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: 'medbuddy://reset-password',
+        redirectTo: Linking.createURL('reset-password'),
       });
 
       if (error) {
@@ -141,6 +253,14 @@ function SignInScreen() {
     }
   };
 
+  if (checkingAuth) {
+    return (
+      <SafeAreaView style={[styles.container, styles.centered]}>
+        <ActivityIndicator size="large" color={COLORS.primary} />
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={styles.container}>
       <KeyboardAvoidingView
@@ -151,7 +271,7 @@ function SignInScreen() {
           {/* Logo Section */}
           <View style={styles.logoContainer}>
             <Image
-              source={require('../../assets/images/MedBuddy Logo.png')}
+              source={require('../../assets/images/app-logo.png')}
               style={styles.logoImage}
               resizeMode="contain"
             />
@@ -170,6 +290,29 @@ function SignInScreen() {
                 ? 'Sign up to start your health journey'
                 : 'Sign in to continue your health journey'}
             </Text>
+
+            {!isSignUp && biometricUnlockAvailable && (
+              <TouchableOpacity
+                style={[styles.biometricButton, biometricLoading && styles.buttonDisabled]}
+                onPress={unlockWithBiometrics}
+                disabled={biometricLoading || loading}
+              >
+                {biometricLoading ? (
+                  <ActivityIndicator color={COLORS.primary} />
+                ) : (
+                  <>
+                    <Ionicons
+                      name={biometricLabel === 'Face ID' ? 'scan-outline' : 'finger-print-outline'}
+                      size={22}
+                      color={COLORS.primary}
+                    />
+                    <Text style={styles.biometricButtonText}>
+                      Unlock with {biometricLabel}
+                    </Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            )}
 
             {isSignUp && (
               <View style={styles.inputContainer}>
@@ -271,7 +414,7 @@ function SignInScreen() {
             <TouchableOpacity
               style={[styles.button, loading && styles.buttonDisabled]}
               onPress={handleAuth}
-              disabled={loading}
+              disabled={loading || biometricLoading}
             >
               {loading ? (
                 <ActivityIndicator color={COLORS.white} />
@@ -327,6 +470,10 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: 'rgba(240, 249, 244, 1)',
   },
+  centered: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   keyboardView: {
     flex: 1,
   },
@@ -337,14 +484,14 @@ const styles = StyleSheet.create({
   },
   logoContainer: {
     alignItems: 'center',
-    marginTop: 5,
-    marginBottom: 80,
+    marginTop: 24,
+    marginBottom: 40,
   },
   logoImage: {
-    width: 300,
-    height: 120
-    ,
-    marginBottom: 0,
+    width: 140,
+    height: 140,
+    marginBottom: 12,
+    borderRadius: 28,
   },
   tagline: {
     fontSize: 16,
@@ -368,6 +515,23 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: 32,
     fontFamily: Fonts.regular,
+  },
+  biometricButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    borderWidth: 2,
+    borderColor: COLORS.primary,
+    backgroundColor: COLORS.white,
+    borderRadius: 12,
+    paddingVertical: 14,
+    marginBottom: 20,
+  },
+  biometricButtonText: {
+    color: COLORS.primary,
+    fontSize: 16,
+    fontFamily: Fonts.semiBold,
   },
   inputContainer: {
     marginBottom: 20,

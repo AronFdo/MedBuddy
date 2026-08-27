@@ -1,14 +1,22 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, ActivityIndicator, TouchableOpacity, Modal, FlatList, TextInput, Platform, Image, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, ActivityIndicator, TouchableOpacity, Modal, FlatList, TextInput, Platform, Image, Alert, Linking, Switch } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../../lib/supabase';
 import { useRouter } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
-import * as FileSystem from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
 
 import { useProfile } from '../../lib/ProfileContext';
 import NotificationSettings from '../../components/NotificationSettings';
 import { Fonts } from '../../constants/Fonts';
+import {
+  canUseBiometrics,
+  clearBiometricSession,
+  enableBiometricsWithSession,
+  getBiometricLabel,
+  isBiometricEnabled,
+  setBiometricEnabled,
+} from '../../lib/biometricAuth';
 
 const COLORS = {
   primary: '#25D366',
@@ -47,16 +55,34 @@ function FloatingSettingsButton({ onPress }: { onPress: () => void }) {
   );
 }
 
-function ProfileSidebar({ visible, onClose, onEditProfile, onCustomize, onSwitchProfile, onLogout, onChangePassword, onDeleteProfile, profile }: { 
-  visible: boolean; 
-  onClose: () => void; 
-  onEditProfile: () => void; 
-  onCustomize: () => void; 
-  onSwitchProfile: () => void; 
-  onLogout: () => void; 
-  onChangePassword: () => void; 
-  onDeleteProfile: () => void; 
-  profile: any; 
+function ProfileSidebar({
+  visible,
+  onClose,
+  onEditProfile,
+  onCustomize,
+  onSwitchProfile,
+  onLogout,
+  onChangePassword,
+  onDeleteProfile,
+  profile,
+  biometricAvailable,
+  biometricEnabled,
+  biometricLabel,
+  onToggleBiometric,
+}: {
+  visible: boolean;
+  onClose: () => void;
+  onEditProfile: () => void;
+  onCustomize: () => void;
+  onSwitchProfile: () => void;
+  onLogout: () => void;
+  onChangePassword: () => void;
+  onDeleteProfile: () => void;
+  profile: any;
+  biometricAvailable: boolean;
+  biometricEnabled: boolean;
+  biometricLabel: string;
+  onToggleBiometric: (enabled: boolean) => void;
 }) {
   return (
     <Modal
@@ -137,7 +163,43 @@ function ProfileSidebar({ visible, onClose, onEditProfile, onCustomize, onSwitch
                 <Ionicons name="chevron-forward" size={20} color={COLORS.error} />
               </TouchableOpacity>
             )}
+
+            {biometricAvailable && (
+              <View style={styles.sidebarMenuItem}>
+                <Ionicons
+                  name={biometricLabel === 'Face ID' ? 'scan-outline' : 'finger-print-outline'}
+                  size={24}
+                  color={COLORS.text}
+                />
+                <Text style={[styles.sidebarMenuItemText, { flex: 1 }]}>
+                  Unlock with {biometricLabel}
+                </Text>
+                <Switch
+                  value={biometricEnabled}
+                  onValueChange={onToggleBiometric}
+                  trackColor={{ false: COLORS.lightGray, true: COLORS.secondary }}
+                  thumbColor={biometricEnabled ? COLORS.primary : '#f4f3f4'}
+                />
+              </View>
+            )}
             
+            <TouchableOpacity
+              style={styles.sidebarMenuItem}
+              onPress={async () => {
+                const url = 'https://medbuddy-app.com/privacy';
+                try {
+                  await Linking.openURL(url);
+                } catch (error) {
+                  Alert.alert('Unable to open', 'Could not open the Privacy Policy. Please visit medbuddy-app.com/privacy');
+                }
+                onClose();
+              }}
+            >
+              <Ionicons name="document-text-outline" size={24} color={COLORS.text} />
+              <Text style={styles.sidebarMenuItemText}>Privacy Policy</Text>
+              <Ionicons name="open-outline" size={20} color={COLORS.text} />
+            </TouchableOpacity>
+
             <View style={styles.sidebarDivider} />
             
             <TouchableOpacity 
@@ -983,6 +1045,9 @@ export default function Profile() {
   const [showEditModal, setShowEditModal] = useState(false);
   const [showCustomizeModal, setShowCustomizeModal] = useState(false);
   const [showSidebar, setShowSidebar] = useState(false);
+  const [biometricAvailable, setBiometricAvailable] = useState(false);
+  const [biometricEnabled, setBiometricEnabledState] = useState(false);
+  const [biometricLabel, setBiometricLabel] = useState('Biometrics');
 
   // Get user ID on mount
   useEffect(() => {
@@ -995,6 +1060,45 @@ export default function Profile() {
     getUserId();
   }, []);
 
+  useEffect(() => {
+    const loadBiometricSettings = async () => {
+      const [available, enabled, label] = await Promise.all([
+        canUseBiometrics(),
+        isBiometricEnabled(),
+        getBiometricLabel(),
+      ]);
+      setBiometricAvailable(available);
+      setBiometricEnabledState(enabled);
+      setBiometricLabel(label);
+    };
+    loadBiometricSettings();
+  }, []);
+
+  const handleToggleBiometric = async (enabled: boolean) => {
+    try {
+      if (enabled) {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) {
+          Alert.alert('Sign in required', 'Please sign in again before enabling biometric unlock.');
+          return;
+        }
+        const success = await enableBiometricsWithSession(session);
+        if (!success) {
+          Alert.alert('Not enabled', `${biometricLabel} was not enabled. Please try again.`);
+          setBiometricEnabledState(false);
+          return;
+        }
+        setBiometricEnabledState(true);
+        Alert.alert('Enabled', `${biometricLabel} unlock is now turned on.`);
+      } else {
+        await setBiometricEnabled(false);
+        setBiometricEnabledState(false);
+      }
+    } catch (error) {
+      console.error('Biometric toggle error:', error);
+      Alert.alert('Error', `Could not update ${biometricLabel} settings.`);
+    }
+  };
   // Fetch data for selected profile
   useEffect(() => {
     if (!profile || !profile.id) return;
@@ -1003,7 +1107,7 @@ export default function Profile() {
       // Fetch Health Records for profile
       const { data: recordsData } = await supabase
         .from('health_records')
-        .select('id, profile_id, event_date, record_type, title, attachment_url, notes')
+        .select('id, profile_id, event_date, record_type, title, attachment_url, details')
         .eq('profile_id', profile.id)
         .order('event_date', { ascending: false })
         .limit(30); // Limit to recent records
@@ -1105,7 +1209,13 @@ export default function Profile() {
         onEditProfile={() => setShowEditModal(true)}
         onCustomize={() => setShowCustomizeModal(true)}
         onSwitchProfile={() => setShowSwitchModal(true)}
+        biometricAvailable={biometricAvailable}
+        biometricEnabled={biometricEnabled}
+        biometricLabel={biometricLabel}
+        onToggleBiometric={handleToggleBiometric}
         onLogout={async () => {
+          await clearBiometricSession();
+          setBiometricEnabledState(false);
           await supabase.auth.signOut();
           router.replace('/Auth');
         }}

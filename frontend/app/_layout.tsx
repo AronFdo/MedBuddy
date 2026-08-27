@@ -59,6 +59,7 @@ export default function RootLayout() {
       <ProfileProvider>
         <Stack>
           <Stack.Screen name="Auth" options={{ headerShown: false }} />
+          <Stack.Screen name="reset-password" options={{ headerShown: false }} />
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
           <Stack.Screen name="+not-found" />
         </Stack>

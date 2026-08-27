@@ -9,6 +9,8 @@ Notifications.setNotificationHandler({
     shouldShowAlert: true,
     shouldPlaySound: true,
     shouldSetBadge: false,
+    shouldShowBanner: true,
+    shouldShowList: true,
   }),
 });
 
@@ -161,9 +163,9 @@ class NotificationService {
     const [hours, minutes] = reminder.reminderTime.split(':').map(Number);
     
     const trigger: Notifications.DailyTriggerInput = {
+      type: Notifications.SchedulableTriggerInputTypes.DAILY,
       hour: hours,
       minute: minutes,
-      repeats: true,
     };
 
     const notificationId = await Notifications.scheduleNotificationAsync({
@@ -177,6 +179,7 @@ class NotificationService {
           dosage: reminder.dosage,
         },
         sound: 'default',
+        ...(Platform.OS === 'android' && { channelId: 'medication-reminders' }),
       },
       trigger,
       identifier: `medication-${reminder.medicationId}-${reminder.reminderTime}`,
@@ -198,6 +201,7 @@ class NotificationService {
     }
 
     const trigger: Notifications.DateTriggerInput = {
+      type: Notifications.SchedulableTriggerInputTypes.DATE,
       date: reminderTime,
     };
 
@@ -213,6 +217,7 @@ class NotificationService {
           appointmentDate: reminder.appointmentDate,
         },
         sound: 'default',
+        ...(Platform.OS === 'android' && { channelId: 'appointment-reminders' }),
       },
       trigger,
       identifier: `appointment-${reminder.appointmentId}`,

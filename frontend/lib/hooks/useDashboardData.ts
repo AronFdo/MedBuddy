@@ -50,7 +50,7 @@ export function useDashboardData(profileId: string | null) {
         
         supabase
           .from('health_records')
-          .select('id, profile_id, event_date, record_type, title, attachment_url, notes')
+          .select('id, profile_id, event_date, record_type, title, attachment_url, details')
           .eq('profile_id', profileId)
           .order('event_date', { ascending: false })
           .limit(20),

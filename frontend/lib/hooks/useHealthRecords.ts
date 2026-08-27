@@ -9,7 +9,7 @@ export function useHealthRecords(profileId: string | null) {
       
       const { data, error } = await supabase
         .from('health_records')
-        .select('id, profile_id, event_date, record_type, title, attachment_url, notes')
+        .select('id, profile_id, event_date, record_type, title, attachment_url, details')
         .eq('profile_id', profileId)
         .order('event_date', { ascending: false })
         .limit(30);
@@ -29,7 +29,7 @@ export function useHealthRecordsMutation() {
     mutationFn: async ({ profileId }: { profileId: string }) => {
       const { data, error } = await supabase
         .from('health_records')
-        .select('id, profile_id, event_date, record_type, title, attachment_url, notes')
+        .select('id, profile_id, event_date, record_type, title, attachment_url, details')
         .eq('profile_id', profileId)
         .order('event_date', { ascending: false })
         .limit(30);

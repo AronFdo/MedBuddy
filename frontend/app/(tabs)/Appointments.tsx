@@ -6,7 +6,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { useProfile } from '../../lib/ProfileContext';
 import { useRouter } from 'expo-router';
 import * as DocumentPicker from 'expo-document-picker';
-import * as FileSystem from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
 import { BACKEND_URL } from '../../lib/config';
 import DownloadedReports from '../../components/DownloadedReports';
 import { notificationService } from '../../lib/notificationService';
@@ -1025,7 +1025,7 @@ export default function Appointments() {
     
     const { data, error } = await supabase
       .from('health_records')
-      .select('id, profile_id, event_date, record_type, title, attachment_url, notes')
+      .select('id, profile_id, event_date, record_type, title, attachment_url, details')
       .eq('profile_id', profile.id)
       .order('event_date', { ascending: false })
       .limit(30); // Limit to recent records

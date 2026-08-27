@@ -7,8 +7,8 @@
       "developmentClient": true,
       "distribution": "internal",
       "env": {
-        "EXPO_PUBLIC_SUPABASE_URL": "https://qepwahqrjcfbxuiurgjc.supabase.co",
-        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFlcHdhaHFyamNmYnh1aXVyZ2pjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA3NDg3MTcsImV4cCI6MjA2NjMyNDcxN30.Z6bEijCZitLln34rdT8iVv_yPGFxp5TpwyhiUW8fak4",
+        "EXPO_PUBLIC_SUPABASE_URL": "https://zruqazzpwkxfkivhwcgn.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpydXFhenpwd2t4Zmtpdmh3Y2duIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM2MTQ1NjksImV4cCI6MjA5OTE5MDU2OX0.F0XhiS7C5GNoil4mpT478jSga8sHYuBr0UvJM_uhWZM",
         "EXPO_PUBLIC_BACKEND_URL_DEV": "https://medbuddy-backend-200167278829.asia-south1.run.app"
       },
       "android": {
@@ -19,8 +19,8 @@
     "preview": {
       "distribution": "internal",
       "env": {
-        "EXPO_PUBLIC_SUPABASE_URL": "https://qepwahqrjcfbxuiurgjc.supabase.co",
-        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFlcHdhaHFyamNmYnh1aXVyZ2pjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA3NDg3MTcsImV4cCI6MjA2NjMyNDcxN30.Z6bEijCZitLln34rdT8iVv_yPGFxp5TpwyhiUW8fak4",
+        "EXPO_PUBLIC_SUPABASE_URL": "https://zruqazzpwkxfkivhwcgn.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpydXFhenpwd2t4Zmtpdmh3Y2duIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM2MTQ1NjksImV4cCI6MjA5OTE5MDU2OX0.F0XhiS7C5GNoil4mpT478jSga8sHYuBr0UvJM_uhWZM",
         "EXPO_PUBLIC_BACKEND_URL_STAGING": "https://medbuddy-backend-200167278829.asia-south1.run.app"
       },
       "android": {
@@ -30,8 +30,8 @@
     },
     "production": {
       "env": {
-        "EXPO_PUBLIC_SUPABASE_URL": "https://qepwahqrjcfbxuiurgjc.supabase.co",
-        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFlcHdhaHFyamNmYnh1aXVyZ2pjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA3NDg3MTcsImV4cCI6MjA2NjMyNDcxN30.Z6bEijCZitLln34rdT8iVv_yPGFxp5TpwyhiUW8fak4",
+        "EXPO_PUBLIC_SUPABASE_URL": "https://zruqazzpwkxfkivhwcgn.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpydXFhenpwd2t4Zmtpdmh3Y2duIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM2MTQ1NjksImV4cCI6MjA5OTE5MDU2OX0.F0XhiS7C5GNoil4mpT478jSga8sHYuBr0UvJM_uhWZM",
         "EXPO_PUBLIC_BACKEND_URL_PROD": "https://medbuddy-backend-200167278829.asia-south1.run.app"
       },
       "android": {

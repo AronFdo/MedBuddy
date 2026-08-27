@@ -32,6 +32,8 @@ yarn-error.*
 
 # local env files
 .env*.local
+scripts/.db.env
+scripts/supabase_restore.sql
 
 # typescript
 *.tsbuildinfo
