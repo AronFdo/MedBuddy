@@ -1,14 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, ActivityIndicator, TouchableOpacity, Modal, FlatList, TextInput, Platform, Image, Alert, Linking, Switch } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { supabase } from '../../lib/supabase';
 import { useRouter } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import * as FileSystem from 'expo-file-system/legacy';
 
 import { useProfile } from '../../lib/ProfileContext';
-import NotificationSettings from '../../components/NotificationSettings';
 import { Fonts } from '../../constants/Fonts';
+import { notificationService } from '../../lib/notificationService';
 import {
   canUseBiometrics,
   clearBiometricSession,
@@ -69,6 +69,8 @@ function ProfileSidebar({
   biometricEnabled,
   biometricLabel,
   onToggleBiometric,
+  notificationsEnabled,
+  onToggleNotifications,
 }: {
   visible: boolean;
   onClose: () => void;
@@ -83,6 +85,8 @@ function ProfileSidebar({
   biometricEnabled: boolean;
   biometricLabel: string;
   onToggleBiometric: (enabled: boolean) => void;
+  notificationsEnabled: boolean;
+  onToggleNotifications: (enabled: boolean) => void;
 }) {
   return (
     <Modal
@@ -166,8 +170,8 @@ function ProfileSidebar({
 
             {biometricAvailable && (
               <View style={styles.sidebarMenuItem}>
-                <Ionicons
-                  name={biometricLabel === 'Face ID' ? 'scan-outline' : 'finger-print-outline'}
+                <MaterialCommunityIcons
+                  name={biometricLabel === 'Face ID' ? 'face-recognition' : 'fingerprint'}
                   size={24}
                   color={COLORS.text}
                 />
@@ -182,6 +186,19 @@ function ProfileSidebar({
                 />
               </View>
             )}
+
+            <View style={styles.sidebarMenuItem}>
+              <Ionicons name="notifications-outline" size={24} color={COLORS.text} />
+              <Text style={[styles.sidebarMenuItemText, { flex: 1 }]}>
+                Notifications
+              </Text>
+              <Switch
+                value={notificationsEnabled}
+                onValueChange={onToggleNotifications}
+                trackColor={{ false: COLORS.lightGray, true: COLORS.secondary }}
+                thumbColor={notificationsEnabled ? COLORS.primary : '#f4f3f4'}
+              />
+            </View>
             
             <TouchableOpacity
               style={styles.sidebarMenuItem}
@@ -1048,6 +1065,7 @@ export default function Profile() {
   const [biometricAvailable, setBiometricAvailable] = useState(false);
   const [biometricEnabled, setBiometricEnabledState] = useState(false);
   const [biometricLabel, setBiometricLabel] = useState('Biometrics');
+  const [notificationsEnabled, setNotificationsEnabled] = useState(true);
 
   // Get user ID on mount
   useEffect(() => {
@@ -1073,6 +1091,20 @@ export default function Profile() {
     };
     loadBiometricSettings();
   }, []);
+
+  useEffect(() => {
+    notificationService.isEnabled().then(setNotificationsEnabled);
+  }, []);
+
+  const handleToggleNotifications = async (enabled: boolean) => {
+    try {
+      await notificationService.setEnabled(enabled);
+      setNotificationsEnabled(enabled);
+    } catch (error) {
+      console.error('Error updating notification preference:', error);
+      Alert.alert('Error', 'Could not update notification settings.');
+    }
+  };
 
   const handleToggleBiometric = async (enabled: boolean) => {
     try {
@@ -1168,9 +1200,6 @@ export default function Profile() {
           <CustomHeader title="Profile" onSettingsPress={() => setShowSidebar(true)} />
           <ProfileHeader profile={profile} />
           
-          {/* Notification Settings */}
-          <NotificationSettings profileId={profile?.id} />
-          
           <EditProfileModal visible={showEditModal} onClose={() => setShowEditModal(false)} profile={profile} onSave={async (updated) => {
             console.log('Profile updated, refreshing data...', updated);
             // Refresh profiles and update selected profile
@@ -1213,6 +1242,8 @@ export default function Profile() {
         biometricEnabled={biometricEnabled}
         biometricLabel={biometricLabel}
         onToggleBiometric={handleToggleBiometric}
+        notificationsEnabled={notificationsEnabled}
+        onToggleNotifications={handleToggleNotifications}
         onLogout={async () => {
           await clearBiometricSession();
           setBiometricEnabledState(false);

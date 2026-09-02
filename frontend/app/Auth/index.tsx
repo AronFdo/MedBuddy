@@ -13,10 +13,9 @@ import {
   Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { supabase } from '../../lib/supabase';
 import { useRouter } from 'expo-router';
-import * as Linking from 'expo-linking';
 import { Fonts } from '../../constants/Fonts';
 import {
   authenticateWithBiometrics,
@@ -236,7 +235,7 @@ function SignInScreen() {
 
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: Linking.createURL('reset-password'),
+        redirectTo: 'medbuddy://reset-password',
       });
 
       if (error) {
@@ -290,29 +289,6 @@ function SignInScreen() {
                 ? 'Sign up to start your health journey'
                 : 'Sign in to continue your health journey'}
             </Text>
-
-            {!isSignUp && biometricUnlockAvailable && (
-              <TouchableOpacity
-                style={[styles.biometricButton, biometricLoading && styles.buttonDisabled]}
-                onPress={unlockWithBiometrics}
-                disabled={biometricLoading || loading}
-              >
-                {biometricLoading ? (
-                  <ActivityIndicator color={COLORS.primary} />
-                ) : (
-                  <>
-                    <Ionicons
-                      name={biometricLabel === 'Face ID' ? 'scan-outline' : 'finger-print-outline'}
-                      size={22}
-                      color={COLORS.primary}
-                    />
-                    <Text style={styles.biometricButtonText}>
-                      Unlock with {biometricLabel}
-                    </Text>
-                  </>
-                )}
-              </TouchableOpacity>
-            )}
 
             {isSignUp && (
               <View style={styles.inputContainer}>
@@ -435,6 +411,31 @@ function SignInScreen() {
                 </Text>
               </TouchableOpacity>
             )}
+
+            {!isSignUp && biometricUnlockAvailable && (
+              <TouchableOpacity
+                style={[styles.biometricButton, biometricLoading && styles.buttonDisabled]}
+                onPress={unlockWithBiometrics}
+                disabled={biometricLoading || loading}
+                accessibilityRole="button"
+                accessibilityLabel={`Unlock with ${biometricLabel}`}
+              >
+                {biometricLoading ? (
+                  <ActivityIndicator color={COLORS.primary} size="small" />
+                ) : (
+                  <>
+                    <MaterialCommunityIcons
+                      name={biometricLabel === 'Face ID' ? 'face-recognition' : 'fingerprint'}
+                      size={20}
+                      color={COLORS.primary}
+                    />
+                    <Text style={styles.biometricButtonText}>
+                      Unlock with {biometricLabel}
+                    </Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            )}
           </View>
 
           {/* Toggle Section */}
@@ -520,17 +521,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 10,
-    borderWidth: 2,
-    borderColor: COLORS.primary,
-    backgroundColor: COLORS.white,
-    borderRadius: 12,
-    paddingVertical: 14,
-    marginBottom: 20,
+    gap: 8,
+    marginTop: 8,
+    paddingVertical: 10,
   },
   biometricButtonText: {
     color: COLORS.primary,
-    fontSize: 16,
+    fontSize: 15,
     fontFamily: Fonts.semiBold,
   },
   inputContainer: {

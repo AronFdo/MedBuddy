@@ -3,7 +3,6 @@ import { ProfileProvider } from '../lib/ProfileContext';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { queryClient } from '../lib/queryClient';
 import { useEffect, useState } from 'react';
-import { notificationService } from '../lib/notificationService';
 import * as Font from 'expo-font';
 import * as SplashScreen from 'expo-splash-screen';
 
@@ -42,13 +41,6 @@ export default function RootLayout() {
       SplashScreen.hideAsync();
     }
   }, [fontsLoaded]);
-
-  useEffect(() => {
-    // Initialize notification service when app starts
-    notificationService.initialize().catch(error => {
-      console.error('Failed to initialize notification service:', error);
-    });
-  }, []);
 
   if (!fontsLoaded) {
     return null;

@@ -13,11 +13,12 @@ import {
   Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as Linking from 'expo-linking';
 import { supabase } from '../lib/supabase';
 import { Fonts } from '../constants/Fonts';
 import { clearBiometricSession } from '../lib/biometricAuth';
+import type { EmailOtpType } from '@supabase/supabase-js';
 
 const COLORS = {
   primary: '#25D366',
@@ -54,8 +55,33 @@ function parseAuthParams(url: string): Record<string, string> {
   return params;
 }
 
+function firstParam(value: string | string[] | undefined): string | undefined {
+  if (Array.isArray(value)) return value[0];
+  return value;
+}
+
+function routeParamsToRecord(
+  params: Record<string, string | string[] | undefined>
+): Record<string, string> {
+  const out: Record<string, string> = {};
+  Object.entries(params).forEach(([key, value]) => {
+    const first = firstParam(value);
+    if (first) out[key] = first;
+  });
+  return out;
+}
+
 export default function ResetPasswordScreen() {
   const router = useRouter();
+  const routeParams = useLocalSearchParams<{
+    token_hash?: string | string[];
+    type?: string | string[];
+    code?: string | string[];
+    access_token?: string | string[];
+    refresh_token?: string | string[];
+    error?: string | string[];
+    error_description?: string | string[];
+  }>();
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -65,33 +91,47 @@ export default function ResetPasswordScreen() {
 
   const establishRecoverySession = useCallback(async (url?: string | null) => {
     try {
-      if (url) {
-        const params = parseAuthParams(url);
+      const params = {
+        ...routeParamsToRecord(routeParams),
+        ...(url ? parseAuthParams(url) : {}),
+      };
 
-        if (params.error || params.error_description) {
-          throw new Error(params.error_description || params.error || 'Invalid reset link');
-        }
+      if (params.error || params.error_description) {
+        throw new Error(
+          decodeURIComponent(
+            (params.error_description || params.error || 'Invalid reset link').replace(/\+/g, ' ')
+          )
+        );
+      }
 
-        if (params.type && params.type !== 'recovery' && params.type !== 'signup') {
-          // Still allow if tokens are present
-        }
+      // Preferred mobile path: token_hash from deep link (not ConfirmationURL).
+      // ConfirmationURL is often prefetched by email scanners and expires immediately.
+      if (params.token_hash) {
+        const otpType = (params.type || 'recovery') as EmailOtpType;
+        const { error } = await supabase.auth.verifyOtp({
+          token_hash: params.token_hash,
+          type: otpType,
+        });
+        if (error) throw error;
+        setLinkReady(true);
+        return;
+      }
 
-        if (params.access_token && params.refresh_token) {
-          const { error } = await supabase.auth.setSession({
-            access_token: params.access_token,
-            refresh_token: params.refresh_token,
-          });
-          if (error) throw error;
-          setLinkReady(true);
-          return;
-        }
+      if (params.access_token && params.refresh_token) {
+        const { error } = await supabase.auth.setSession({
+          access_token: params.access_token,
+          refresh_token: params.refresh_token,
+        });
+        if (error) throw error;
+        setLinkReady(true);
+        return;
+      }
 
-        if (params.code) {
-          const { error } = await supabase.auth.exchangeCodeForSession(params.code);
-          if (error) throw error;
-          setLinkReady(true);
-          return;
-        }
+      if (params.code) {
+        const { error } = await supabase.auth.exchangeCodeForSession(params.code);
+        if (error) throw error;
+        setLinkReady(true);
+        return;
       }
 
       const { data: { session } } = await supabase.auth.getSession();
@@ -108,7 +148,7 @@ export default function ResetPasswordScreen() {
     } finally {
       setVerifyingLink(false);
     }
-  }, []);
+  }, [routeParams]);
 
   useEffect(() => {
     let mounted = true;
